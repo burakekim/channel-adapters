@@ -1,0 +1,36 @@
+# Minimal site so `quarto preview` / `quarto render` work here. The post itself
+# (posts/channel-adapters/index.qmd) is written to drop into the geospatialml.com
+# repo unchanged: it only relies on fields and features their rendered posts use.
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - posts/channel-adapters/index.qmd
+
+website:
+  title: "channel-adapters"
+  description: "Draft post: adapting RGB-pretrained conv and ViT models to multispectral inputs"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: posts/channel-adapters/index.qmd
+        text: Draft post
+      - href: https://github.com/burakekim/channel-adapters
+        text: GitHub
+  drafts:
+    - posts/channel-adapters/index.qmd
+  draft-mode: visible   # the whole point of this site is to read the draft
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-copy: true
+    citation: true
+    fig-cap-location: bottom

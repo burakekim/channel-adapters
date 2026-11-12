@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+slurm_logs/
+/_site/
+/.quarto/
+posts/**/index_files/
+posts/**/*.html
+/data/

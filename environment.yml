@@ -1,0 +1,22 @@
+# micromamba create -f environment.yml   (then: pip install -e .)
+# Pinned on 2026-11-12 on CUDA 12.x hosts; torch wheels come from the PyTorch cu132 index.
+name: chadapt
+channels: [conda-forge]
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu132
+      - torch==2.15.0
+      - torchvision==0.29.2
+      - timm==1.0.31
+      - torchgeo==0.8.1
+      - scikit-learn==1.9.1
+      - pandas
+      - pyarrow
+      - rasterio
+      - huggingface_hub
+      - matplotlib
+      - pyyaml
+      - pytest
+      - tqdm

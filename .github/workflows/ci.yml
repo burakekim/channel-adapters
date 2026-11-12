@@ -1,0 +1,45 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install timm==1.0.31 numpy pytest pyyaml scikit-learn && pip install -e . --no-deps
+      - run: pytest
+      - run: python experiments/check_numbers.py
+
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with: {version: "1.10.19"}
+      - run: quarto render
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: _site}
+      - uses: actions/upload-artifact@v4   # PR previews: download _site from the run page
+        with: {name: site, path: _site}
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: [tests, render]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

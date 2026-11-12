@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "channel-adapters"
+version = "0.1.0"
+description = "Adapting RGB-pretrained conv and ViT models to multispectral inputs: adapters, experiments, and a blog post draft"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Burak Ekim"}, {name = "Caleb Robinson"}]
+dependencies = ["torch", "timm>=1.0", "numpy"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
