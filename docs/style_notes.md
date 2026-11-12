@@ -58,3 +58,26 @@ Observed on 2026-11-12 from the rendered site (the source repo `isaaccorley/geos
 - [ ] Every figure has an interpretive caption; every table has a note line; best values bold.
 - [ ] Caveats inline. No claims beyond the runs in `results/`.
 - [ ] "We" voice; nothing attributed to Caleb beyond the thread.
+
+## Caleb's personal blog (calebrob.com), observed 2026-11-12
+
+Added at Burak's request. Source: [calebrob.com/year-archive](https://calebrob.com/year-archive/) and the public Jekyll source at [github.com/calebrob6/calebrob6.github.io](https://github.com/calebrob6/calebrob6.github.io) (AcademicPages, a Minimal Mistakes fork).
+
+**How his site relates to geospatialml.com.** Every 2026 entry in his archive is a link stub: a Markdown file with `link:` front matter that renders as a link post and sends readers to geospatialml.com, with the body "This post is published on geospatialml.com, the blog I write with Isaac Corley." So the post itself lives on geospatialml.com and his site carries a stub. A ready-made stub for this post is in `posts/channel-adapters/calebrob-stub.md`.
+
+**Two registers.** His pre-2024 personal posts are short (300 to 1,100 words), first-person singular, notebook-derived, with 5 to 30 line Python blocks, inline timings ("399 valid words in 37 milliseconds"), "take 1 / take 1.5 / take 2" progressions, and no conclusion section: they end on the result or a link. His 2026 geospatialml posts are the register we match: "we" throughout, 1,200 to 4,500 words, measured but direct.
+
+**Devices to adopt from the 2026 posts.**
+- Hook with a concrete number or question in the first line ("6.1 PB", "~10 GPU-hours and ~2,000 GPU-hours", "Spoiler: they mostly don't"), then a paragraph on why it matters for remote sensing in practice.
+- One-line pull quotes as blockquotes ("There is no reason to store float32 embeddings.").
+- Results prose names the winner and then the complication in the next sentence ("SegFormer leads on overall metrics... But the U-Net wins on DWR").
+- **Takeaways** as a numbered list; each item is a bold imperative sentence followed by one line of evidence ("**Always use int8.** It is statistically indistinguishable from float32 across every model and dataset we tested (p > 0.12).").
+- **Limitations** as an explicit list introduced by "We have not tested:", each bullet with a one-clause reason, followed by a recommendation to validate on the reader's own task.
+- "Read this first" warning callout when a scope caveat applies to every number.
+- Statistical claims carry p-values or bootstrap intervals and the phrase "statistically indistinguishable" where it applies.
+- Dated **Update** callouts crediting the person who flagged an error.
+- Code only where a reader would copy it; analysis posts show none and link a repo. Demos hosted at calebrob.com/<name>/ with code at github.com/calebrob6/<name>.
+- Endings: takeaways, links, or a one-line generalization; never a marketing call to action. A "Try it yourself" section with notebook or Colab notes when there is something to run.
+- Collaborators credited inline by first name ("Isaac's recent survey").
+
+**What this changes in our draft.** The recipe section becomes numbered takeaways in that form; limitations become an explicit "We have not tested" list before the takeaways; a short "Try it yourself" section points at the repository's one-command reproduction.

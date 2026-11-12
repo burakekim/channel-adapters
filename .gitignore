@@ -8,3 +8,5 @@ slurm_logs/
 posts/**/index_files/
 posts/**/*.html
 /data/
+
+**/*.quarto_ipynb
