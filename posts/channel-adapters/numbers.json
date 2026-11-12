@@ -1,3 +1,4 @@
 {
+ "E1_ResNet-50_timm-repeat_range": 3.7,
  "E1_ViT-S/16_warmup_range": 0.0
 }

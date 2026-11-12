@@ -113,10 +113,10 @@ def fig_adapters(colors):
         "mean-rgb-init": [("N bands", None), ("first layer\n(mean RGB kernel)", "pre-mod"), ("rest of network", "pre")],
         "rgb-only": [("R, G, B only", None), ("first layer\n(original)", "pre"), ("rest of network", "pre")],
         "pseudo-rgb": [("N bands", None), ("1x1 conv N->3\n(init: select RGB)", "new"), ("first layer\n(original)", "pre"), ("rest of network", "pre")],
-        "split-stem": [("RGB | other bands", None), ("original | zero-init copy\n(summed)", "split"), ("rest of network", "pre")],
+        "split-stem": [("RGB | other bands", None), ("original|zero-init", "split"), ("rest of network", "pre")],
         "warmup": [("N bands", None), ("first layer\n(tiled, trained first)", "pre-mod"), ("rest of network\n(frozen, then trained)", "pre")],
     }
-    style = {"pre": dict(fc="#d8d6cf", ec=ink), "pre-mod": dict(fc="#d8d6cf", ec=ink, hatch="//"), "new": dict(fc=colors["timm-repeat"], ec=ink), None: dict(fc="none", ec="none")}
+    style = {"pre": dict(fc="#d8d6cf", ec=ink), "pre-mod": dict(fc="#d8d6cf", ec=ink, hatch="////", lw=1), "new": dict(fc=colors["timm-repeat"], ec=ink), None: dict(fc="none", ec="none")}
     for ax, name in zip(axes, ADAPTERS):
         ax.axis("off"); ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_title(name, fontsize=10, color=colors[name], fontweight="bold")
         blocks = specs[name]; h = 0.16; gap = (0.95 - h * len(blocks)) / (len(blocks) + 1)
@@ -124,12 +124,15 @@ def fig_adapters(colors):
             y = 0.95 - (i + 1) * (h + gap) + gap
             if kind == "split":
                 ax.add_patch(Rectangle((0.05, y), 0.42, h, **style["pre"])); ax.add_patch(Rectangle((0.53, y), 0.42, h, **style["new"]))
-                ax.text(0.5, y - 0.03, label, ha="center", va="top", fontsize=7)
+                ax.text(0.26, y + h / 2, "first layer\n(original)", ha="center", va="center", fontsize=6.5, color=ink)
+                ax.text(0.74, y + h / 2, "copy\n(zero init)", ha="center", va="center", fontsize=6.5, color="white")
+                ax.text(0.5, y - 0.012, "+", ha="center", va="top", fontsize=9, color=ink)
             else:
                 ax.add_patch(Rectangle((0.05, y), 0.9, h, **style[kind]))
-                ax.text(0.5, y + h / 2, label, ha="center", va="center", fontsize=7.5, color="white" if kind == "new" else ink)
+                bbox = dict(fc="#d8d6cf", ec="none", pad=1.5) if kind == "pre-mod" else None
+                ax.text(0.5, y + h / 2, label, ha="center", va="center", fontsize=7.5, color="white" if kind == "new" else ink, bbox=bbox)
             if i < len(blocks) - 1:
-                ax.annotate("", xy=(0.5, y - gap + 0.01), xytext=(0.5, y - 0.005), arrowprops=dict(arrowstyle="->", lw=1, color=ink))
+                ax.annotate("", xy=(0.5, y - gap + 0.01), xytext=(0.5, y - (0.035 if kind == "split" else 0.005)), arrowprops=dict(arrowstyle="->", lw=1, color=ink))
     fig.text(0.5, -0.04, "grey: pretrained, untouched   hatched: pretrained, rewritten   blue: new, trained from a chosen initialisation", ha="center", fontsize=8.5)
     return fig
 
