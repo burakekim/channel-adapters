@@ -81,6 +81,8 @@ def pick_lr() -> None:
 SLURM = """#!/bin/bash
 #SBATCH --job-name=chadapt-{exp}
 #SBATCH --partition={partition}
+#SBATCH --account={account}
+#SBATCH --qos={qos}
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=48G
@@ -101,6 +103,8 @@ def main() -> None:
     p.add_argument("--all", action="store_true")
     p.add_argument("--slurm", action="store_true")
     p.add_argument("--partition", default="vision-beery-l40s")
+    p.add_argument("--account", default="vision-beery")
+    p.add_argument("--qos", default="vision-beery-main")
     p.add_argument("--max-parallel", type=int, default=16)
     p.add_argument("--pick-lr", action="store_true")
     a = p.parse_args()
@@ -128,7 +132,7 @@ def main() -> None:
     elif a.slurm:
         logdir = ROOT / "slurm_logs"
         logdir.mkdir(exist_ok=True)
-        script = SLURM.format(exp=a.exp, partition=a.partition, last=len(runs) - 1, max_parallel=a.max_parallel,
+        script = SLURM.format(exp=a.exp, partition=a.partition, account=a.account, qos=a.qos, last=len(runs) - 1, max_parallel=a.max_parallel,
                               logdir=logdir, root=ROOT, python=sys.executable,
                               data=os.environ.get("CHADAPT_DATA", Path.home() / ".cache" / "channel-adapters"))
         path = logdir / f"{a.exp}.sbatch"

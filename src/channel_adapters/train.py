@@ -185,28 +185,43 @@ def finetune(cfg: RunConfig, model, splits, device) -> dict:
 
 
 # ----------------------------------------------------------------------------
-# linear probe
+# linear probe (multinomial logistic regression, full-batch L-BFGS on the GPU)
 # ----------------------------------------------------------------------------
-def probe(cfg: RunConfig, model, splits, ds: Dataset) -> dict:
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.preprocessing import StandardScaler
+def fit_logreg(x, y, n_classes, l2, iters=300):
+    w = torch.zeros(x.shape[1], n_classes, device=x.device, requires_grad=True)
+    b = torch.zeros(n_classes, device=x.device, requires_grad=True)
+    opt = torch.optim.LBFGS([w, b], lr=1, max_iter=iters, history_size=20, line_search_fn="strong_wolfe",
+                            tolerance_grad=1e-6, tolerance_change=1e-9)
 
+    def closure():
+        opt.zero_grad()
+        loss = F.cross_entropy(x @ w + b, y) + 0.5 * l2 * (w * w).sum()
+        loss.backward()
+        return loss
+
+    opt.step(closure)
+    return w.detach(), b.detach()
+
+
+def probe(cfg: RunConfig, model, splits, ds: Dataset) -> dict:
     t0 = time.time()
-    feats = {k: features(model, v, cfg.img_size) for k, v in splits.items()}
-    ys = {k: v.y.cpu().numpy() for k, v in splits.items()}
+    device = splits["train"].x.device
+    feats = {k: torch.from_numpy(features(model, v, cfg.img_size)).to(device) for k, v in splits.items()}
+    ys = {k: v.y for k, v in splits.items()}
+    n_classes = len(ds.classes)
     results = []
     for budget in cfg.probe_budgets:
         for seed in cfg.probe_seeds:
-            sub = subsample(Split(torch.from_numpy(feats["train"]), torch.from_numpy(ys["train"])), budget, seed)
-            scaler = StandardScaler().fit(sub.x.numpy())
-            xtr, xva, xte = (scaler.transform(a) for a in (sub.x.numpy(), feats["val"], feats["test"]))
+            sub = subsample(Split(feats["train"], ys["train"]), budget, seed)
+            mu, sd = sub.x.mean(0, keepdim=True), sub.x.std(0, keepdim=True).clamp_min(1e-6)
+            xtr, xva, xte = ((a - mu) / sd for a in (sub.x, feats["val"], feats["test"]))
             best = None
-            for C in (1e-3, 1e-2, 1e-1, 1.0, 10.0):
-                clf = LogisticRegression(C=C, max_iter=2000).fit(xtr, sub.y.numpy())
-                va = clf.score(xva, ys["val"])
+            for l2 in (1e-4, 1e-3, 1e-2, 1e-1, 1.0):   # weight decay; small l2 = large C
+                w, b = fit_logreg(xtr, sub.y, n_classes, l2)
+                va = ((xva @ w + b).argmax(1) == ys["val"]).float().mean().item()
                 if best is None or va > best[0]:
-                    best = (va, C, clf.score(xte, ys["test"]))
-            results.append({"budget": budget, "seed": seed, "C": best[1], "val_acc": best[0], "test_acc": best[2]})
+                    best = (va, l2, ((xte @ w + b).argmax(1) == ys["test"]).float().mean().item())
+            results.append({"budget": budget, "seed": seed, "l2": best[1], "val_acc": best[0], "test_acc": best[2]})
             if budget >= 1.0:
                 break  # the full budget has no sampling randomness
     return {"probe": results, "feature_dim": int(feats["train"].shape[1]), "train_time_s": time.time() - t0}
