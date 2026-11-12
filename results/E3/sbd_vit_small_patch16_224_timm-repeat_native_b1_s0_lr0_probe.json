@@ -1,0 +1,106 @@
+{
+ "config": {
+  "dataset": "sbd",
+  "model": "vit_small_patch16_224.augreg_in21k",
+  "adapter": "timm-repeat",
+  "band_order": "native",
+  "budget": 1.0,
+  "seed": 0,
+  "lr": 0.0,
+  "mode": "probe",
+  "epochs": null,
+  "warmup_epochs": 3,
+  "img_size": 128,
+  "batch_size": 256,
+  "weight_decay": 0.05,
+  "lr_warmup_epochs": 1,
+  "probe_budgets": [
+   1.0,
+   0.1,
+   0.01
+  ],
+  "probe_seeds": [
+   0,
+   1,
+   2
+  ],
+  "exp": "E3",
+  "tag": ""
+ },
+ "run_id": "sbd_vit_small_patch16_224_timm-repeat_native_b1_s0_lr0_probe",
+ "git_sha": "88798c8",
+ "bands": [
+  "B01",
+  "B02",
+  "B03",
+  "B04",
+  "B05",
+  "B06",
+  "B07",
+  "B08",
+  "B8A",
+  "B09",
+  "B11",
+  "B12"
+ ],
+ "rgb_positions": [
+  3,
+  2,
+  1
+ ],
+ "n_train": 24741,
+ "device": "NVIDIA L40S",
+ "probe": [
+  {
+   "budget": 1.0,
+   "seed": 0,
+   "l2": 0.001,
+   "val_acc": 0.5874555110931396,
+   "test_acc": 0.599418044090271
+  },
+  {
+   "budget": 0.1,
+   "seed": 0,
+   "l2": 0.1,
+   "val_acc": 0.5244099497795105,
+   "test_acc": 0.5483349561691284
+  },
+  {
+   "budget": 0.1,
+   "seed": 1,
+   "l2": 0.1,
+   "val_acc": 0.5185903310775757,
+   "test_acc": 0.5486582517623901
+  },
+  {
+   "budget": 0.1,
+   "seed": 2,
+   "l2": 0.1,
+   "val_acc": 0.515357255935669,
+   "test_acc": 0.5421920418739319
+  },
+  {
+   "budget": 0.01,
+   "seed": 0,
+   "l2": 1.0,
+   "val_acc": 0.4106045961380005,
+   "test_acc": 0.44519883394241333
+  },
+  {
+   "budget": 0.01,
+   "seed": 1,
+   "l2": 1.0,
+   "val_acc": 0.40898802876472473,
+   "test_acc": 0.44034916162490845
+  },
+  {
+   "budget": 0.01,
+   "seed": 2,
+   "l2": 0.1,
+   "val_acc": 0.4186873435974121,
+   "test_acc": 0.41674748063087463
+  }
+ ],
+ "feature_dim": 384,
+ "train_time_s": 10.943918943405151
+}

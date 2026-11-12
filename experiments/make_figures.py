@@ -161,8 +161,9 @@ def dot_range(ax, df, group_col, order, colors, label_fmt="{:.1f}"):
         c = colors[g] if g in colors else plt.rcParams["text.color"]
         ax.plot([lo, hi], [i, i], color=c, lw=2, alpha=0.6)
         ax.plot(m, i, marker=MARKERS.get(g, "o"), color=c, ms=8, ls="none")
-        ax.text(hi + 0.4, i, label_fmt.format(m), va="center", fontsize=8.5, color=plt.rcParams["text.color"])
+        ax.annotate(label_fmt.format(m), (hi, i), xytext=(6, 0), textcoords="offset points", va="center", fontsize=8.5, color=plt.rcParams["text.color"])
     ax.set_yticks(range(len(order))); ax.set_yticklabels(order); ax.invert_yaxis()
+    lo, hi = ax.get_xlim(); ax.set_xlim(lo, hi + 0.12 * (hi - lo))
     ax.grid(axis="x"); ax.grid(False, axis="y")
 
 
@@ -172,7 +173,7 @@ def fig_main(colors, e2):
     e2 = e2[(e2.budget == 1.0) & (e2.band_order == "native")]
     if e2.empty:
         return None
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.6), sharex=False)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.6), sharex=True)
     for ax, (m, name) in zip(axes, MODELS.items()):
         d = e2[e2.model == m]
         dot_range(ax, d, "adapter", ADAPTERS, colors)
@@ -254,7 +255,7 @@ def fig_permutation(colors, e0):
     if e0.empty:
         return None
     orders = ["native", "rgb-first", "reversed", "random-0", "random-1"]
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.2))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.2), sharex=True)
     for ax, (m, name) in zip(axes, MODELS.items()):
         d = e0[e0.model == m]
         dot_range(ax, d, "band_order", orders, {o: colors["timm-repeat"] for o in orders})
