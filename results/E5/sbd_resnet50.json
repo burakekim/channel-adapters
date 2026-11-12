@@ -1,0 +1,43 @@
+{
+ "dataset": "sbd",
+ "model": "resnet50.a1_in1k",
+ "n_images": 2048,
+ "img_size": 128,
+ "adapters": {
+  "timm-repeat": {
+   "cka": 0.7379410266876221,
+   "std_ratio": 0.8358308672904968,
+   "mean_shift": -0.0006373043288476765
+  },
+  "random-init": {
+   "cka": 0.7407608032226562,
+   "std_ratio": 0.11829372495412827,
+   "mean_shift": -0.0012198049807921052
+  },
+  "mean-rgb-init": {
+   "cka": 0.721208930015564,
+   "std_ratio": 0.8270825743675232,
+   "mean_shift": -0.0005797817721031606
+  },
+  "rgb-only": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "pseudo-rgb": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "split-stem": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "warmup": {
+   "cka": 0.7379410266876221,
+   "std_ratio": 0.8358308672904968,
+   "mean_shift": -0.0006373043288476765
+  }
+ }
+}

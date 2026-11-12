@@ -1,0 +1,43 @@
+{
+ "dataset": "sbd",
+ "model": "vit_small_patch16_224.augreg_in21k",
+ "n_images": 2048,
+ "img_size": 128,
+ "adapters": {
+  "timm-repeat": {
+   "cka": 0.7291309833526611,
+   "std_ratio": 0.9050206542015076,
+   "mean_shift": -0.005978656467050314
+  },
+  "random-init": {
+   "cka": 0.796288251876831,
+   "std_ratio": 1.630192518234253,
+   "mean_shift": 0.004850045312196016
+  },
+  "mean-rgb-init": {
+   "cka": 0.7105576992034912,
+   "std_ratio": 0.8716505169868469,
+   "mean_shift": -0.0032838191837072372
+  },
+  "rgb-only": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "pseudo-rgb": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "split-stem": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "warmup": {
+   "cka": 0.7291309833526611,
+   "std_ratio": 0.9050206542015076,
+   "mean_shift": -0.005978656467050314
+  }
+ }
+}

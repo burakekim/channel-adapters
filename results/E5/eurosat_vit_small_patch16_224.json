@@ -1,0 +1,43 @@
+{
+ "dataset": "eurosat",
+ "model": "vit_small_patch16_224.augreg_in21k",
+ "n_images": 2048,
+ "img_size": 128,
+ "adapters": {
+  "timm-repeat": {
+   "cka": 0.6314156651496887,
+   "std_ratio": 0.8286294937133789,
+   "mean_shift": 0.002960254903882742
+  },
+  "random-init": {
+   "cka": 0.7620006799697876,
+   "std_ratio": 1.4047902822494507,
+   "mean_shift": 0.009534195065498352
+  },
+  "mean-rgb-init": {
+   "cka": 0.6214595437049866,
+   "std_ratio": 0.7902450561523438,
+   "mean_shift": 0.0018927830969914794
+  },
+  "rgb-only": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "pseudo-rgb": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "split-stem": {
+   "cka": 1.0,
+   "std_ratio": 1.0,
+   "mean_shift": 0.0
+  },
+  "warmup": {
+   "cka": 0.6314156651496887,
+   "std_ratio": 0.8286294937133789,
+   "mean_shift": 0.002960254903882742
+  }
+ }
+}

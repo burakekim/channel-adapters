@@ -100,7 +100,7 @@ Two of the four alternatives (`pseudo-rgb`, `split-stem`) preserve the "contract
 
 **Models.** One convolutional network and one transformer, both ImageNet checkpoints from `timm`: `resnet50.a1_in1k` (first layer `conv1`, a $7 \times 7$ stride-2 convolution) and `vit_small_patch16_224.augreg_in21k` (first layer `patch_embed.proj`, a $16 \times 16$ stride-16 convolution). We resize inputs to $128 \times 128$ and build the ViT with `img_size=128`, so it sees 64 tokens.
 
-**Datasets.** Our main dataset is [Similar-but-Different](https://geospatialml.com/posts/similar-but-different/), 30,927 Sentinel-2 L2A patches of $32 \times 32$ pixels in twelve bands across ten WorldCover classes, built so that RGB alone is insufficient: in that post a fine-tuned ResNet-18 went from 0.71 test accuracy with RGB to 0.82 with all twelve bands. That gap is what makes it a good test of adapters. If the extra bands did not matter, neither would how you plug them in. We use the fixed scene-disjoint split (24,741 / 3,093 / 3,093). Our second dataset is [EuroSAT](https://arxiv.org/abs/1709.00029), 27,000 patches of $64 \times 64$ pixels in thirteen bands across ten classes, with torchgeo's split (16,199 / 5,399 / 5,399). EuroSAT is the dataset most readers know, and also one where RGB already reaches about 98.6%, so we expect small differences there and report it as a sanity check rather than a verdict.
+**Datasets.** Our main dataset is [Similar-but-Different](https://geospatialml.com/posts/similar-but-different/), 30,927 Sentinel-2 L2A patches of $32 \times 32$ pixels in twelve bands across ten WorldCover classes, built so that RGB alone is insufficient: in that post a fine-tuned ResNet-18 went from 0.71 test accuracy with RGB to 0.82 with all twelve bands. That gap is what makes it a good test of adapters. If the extra bands did not matter, neither would how you plug them in. We use the fixed scene-disjoint split (24,741 / 3,093 / 3,093). Our second dataset is [EuroSAT](https://arxiv.org/abs/1709.00029), 27,000 patches of $64 \times 64$ pixels in thirteen bands across ten classes, with torchgeo's split (16,200 / 5,400 / 5,400). EuroSAT is the dataset most readers know, and also one where RGB already reaches about 98.6%, so we expect small differences there and report it as a sanity check rather than a verdict.
 
 **Protocol.** Full fine-tuning with AdamW, cosine schedule, batch size 256, mixed precision, 20 epochs at the full label budget, flips and 90-degree rotations as the only augmentation. Each band is standardised with its own training-set mean and standard deviation. The learning rate is chosen per model and adapter from {1e-4, 3e-4, 1e-3, 3e-3} on the validation split at the full budget (seed 0), and the whole sweep is reported as the sensitivity result. Label budgets of 100%, 10% and 1% of the training split, stratified by class, three seeds each. Linear probes train a logistic regression on frozen features with the regularisation strength swept on validation, as in the Similar-but-Different post.[^probe] Convergence speed is the first epoch at which validation accuracy reaches 95% of its final value. Every run writes one JSON file; every figure below is generated from those files.
 
@@ -142,14 +142,7 @@ We measure how adapters change downstream accuracy, speed and sensitivity. We do
 
 ### Linear probes
 
-| Adapter | ResNet-50, 100% | ResNet-50, 10% | ResNet-50, 1% | ViT-S/16, 100% | ViT-S/16, 10% | ViT-S/16, 1% |
-|---|---:|---:|---:|---:|---:|---:|
-| `rgb-only` | TODO | TODO | TODO | TODO | TODO | TODO |
-| `timm-repeat` | TODO | TODO | TODO | TODO | TODO | TODO |
-| `mean-rgb-init` | TODO | TODO | TODO | TODO | TODO | TODO |
-| `random-init` | TODO | TODO | TODO | TODO | TODO | TODO |
-| `pseudo-rgb` | TODO | TODO | TODO | TODO | TODO | TODO |
-| `split-stem` | TODO | TODO | TODO | TODO | TODO | TODO |
+{{< include tables/table2_probe_sbd.md >}}
 
 Table 2: TODO(results: E3) Linear-probe test accuracy on frozen features, Similar-but-Different. `pseudo-rgb` and `split-stem` are identical to `rgb-only` when frozen, so their rows measure the probe's noise. Mean over three subsamples at 10% and 1%.
 
@@ -157,15 +150,7 @@ Table 2: TODO(results: E3) Linear-probe test accuracy on frozen features, Simila
 
 ### EuroSAT
 
-| Adapter | ResNet-50, fine-tune | ResNet-50, probe | ViT-S/16, fine-tune | ViT-S/16, probe |
-|---|---:|---:|---:|---:|
-| `rgb-only` | TODO | TODO | TODO | TODO |
-| `timm-repeat` | TODO | TODO | TODO | TODO |
-| `mean-rgb-init` | TODO | TODO | TODO | TODO |
-| `random-init` | TODO | TODO | TODO | TODO |
-| `pseudo-rgb` | TODO | TODO | TODO | TODO |
-| `split-stem` | TODO | TODO | TODO | TODO |
-| `warmup` | TODO | n/a | TODO | n/a |
+{{< include tables/table3_eurosat.md >}}
 
 Table 3: TODO(results: E4, E4p) EuroSAT test accuracy, full label budget, mean ± standard deviation over three seeds for fine-tuning. Best value per column in bold.
 
