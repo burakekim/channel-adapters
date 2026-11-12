@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
-      - run: pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install torch==2.15.0 torchvision==0.29.2 --index-url https://download.pytorch.org/whl/cpu
       - run: pip install timm==1.0.31 numpy pytest pyyaml scikit-learn && pip install -e . --no-deps
       - run: pytest
       - run: python experiments/check_numbers.py
