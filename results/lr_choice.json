@@ -1,0 +1,20 @@
+{
+ "resnet50.a1_in1k": {
+  "rgb-only": 0.003,
+  "mean-rgb-init": 0.003,
+  "warmup": 0.003,
+  "split-stem": 0.003,
+  "timm-repeat": 0.003,
+  "random-init": 0.003,
+  "pseudo-rgb": 0.003
+ },
+ "vit_small_patch16_224.augreg_in21k": {
+  "warmup": 0.0003,
+  "pseudo-rgb": 0.001,
+  "rgb-only": 0.0003,
+  "mean-rgb-init": 0.0003,
+  "timm-repeat": 0.0003,
+  "random-init": 0.001,
+  "split-stem": 0.0003
+ }
+}

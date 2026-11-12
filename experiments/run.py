@@ -65,7 +65,7 @@ def done(cfg: RunConfig) -> bool:
 
 def pick_lr() -> None:
     choice: dict[str, dict[str, float]] = {}
-    for f in (RESULTS / "E1").glob("*.json"):
+    for f in list((RESULTS / "E1").glob("*.json")) + list((RESULTS / "E1b").glob("*.json")):
         r = json.loads(f.read_text())
         c = r["config"]
         if r.get("diverged"):

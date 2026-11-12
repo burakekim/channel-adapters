@@ -37,6 +37,17 @@ MODELS = {"resnet50.a1_in1k": "ResNet-50", "vit_small_patch16_224.augreg_in21k":
 NUMBERS: dict[str, float] = {}
 
 
+LR_CHOICE = json.loads((RESULTS / "lr_choice.json").read_text()) if (RESULTS / "lr_choice.json").exists() else {}
+
+
+def chosen_lr(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only the runs at the learning rate selected from E1 for that model x adapter."""
+    if df.empty or not LR_CHOICE:
+        return df
+    keep = [abs(r.lr - LR_CHOICE.get(r.model, {}).get(r.adapter, r.lr)) < 1e-12 for r in df.itertuples()]
+    return df[keep]
+
+
 def load(exp: str) -> pd.DataFrame:
     rows = []
     for f in sorted((RESULTS / exp).glob("*.json")):
@@ -304,7 +315,7 @@ def table_probe(exp: str, path: Path, budgets=(1.0, 0.1, 0.01)):
 
 
 def table_eurosat(path: Path):
-    ft, pr = load("E4"), load("E4p")
+    ft, pr = chosen_lr(load("E4")), load("E4p")
     if ft.empty:
         return
     cols = [f"{n}, {k}" for n in MODELS.values() for k in ("fine-tune", "probe")]
@@ -347,7 +358,7 @@ def _bold_best(lines, path):
 def main():
     both(fig_tiling, "fig1_tiling")
     both(fig_adapters, "fig3_adapters")
-    e0, e1, e2 = load("E0"), load("E1"), load("E2")
+    e0, e1, e2 = chosen_lr(load("E0")), pd.concat([load("E1"), load("E1b")], ignore_index=True), chosen_lr(load("E2"))
     both(fig_permutation, "fig2_permutation", e0)
     both(fig_main, "fig4_main", e2)
     both(fig_budget, "fig5_budget", e2)

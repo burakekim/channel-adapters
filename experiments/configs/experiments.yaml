@@ -66,3 +66,13 @@ E4p:  # EuroSAT linear probe
   seed: [0]
   lr: [0.0]
   mode: probe
+
+E1b:  # extension of E1: the ResNet optimum sat at the top of the grid, so add two higher rates
+  dataset: sbd
+  model: [resnet50.a1_in1k]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup]
+  band_order: [native]
+  budget: [1.0]
+  seed: [0]
+  lr: [1.0e-2, 3.0e-2]
+  mode: finetune
