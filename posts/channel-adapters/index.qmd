@@ -11,23 +11,23 @@ citation: true
 ---
 
 <!--
-DRAFT. Every number below that is not a verified fact about code or data is a
-TODO(results: Ex) placeholder naming the experiment that will supply it. Figures
-are produced by experiments/make_figures.py from results/ only.
-Lines ending in a "<!-- result -->" comment are checked against numbers.json by CI.
+Figures, tables and numbers.json are produced by experiments/make_figures.py from
+results/ only. Lines carrying a "result" comment are checked against numbers.json
+by experiments/check_numbers.py in CI.
 -->
 
 ::: {.callout-warning}
 ## Draft
 
-This is a work-in-progress draft. Numbers marked **TODO** have not been measured yet; nothing here is a result until the matching file exists in the repository's `results/` folder.
+This is a working draft shared for review. Every number comes from a run recorded in the repository's `results/` folder and is regenerated from those files; the text has not yet been reviewed by both authors.
 :::
 
 Most pretrained vision models expect three input channels. Most satellite imagery has more: Sentinel-2 delivers thirteen, and even the Level-2A product keeps twelve. So the first thing almost everyone does with an ImageNet checkpoint in remote sensing is change the number of input channels and hope for the best. `timm` makes this a one-liner (`timm.create_model(name, pretrained=True, in_chans=13)`), torchgeo's classification trainer calls exactly that line, and the rest of the pipeline never hears about it again.
 
 What happens inside that one-liner is simple, deterministic, and a little arbitrary. This post explains it for convolutional stems and for ViT patch embeddings, shows how much the choice is driven by nothing but band order, compares the default against six alternatives on two Sentinel-2 datasets, and ends with a recipe.
 
-> **Spoiler:** **TODO(results: E2)**. One sentence with the headline gap between the best adapter and the `timm` default on Similar-but-Different for the ResNet and for the ViT, and whether the ranking agrees across the two.
+> **Spoiler:** once you fine-tune the whole network, how you initialise the first layer barely matters, as long as you do not throw bands away. On Similar-but-Different the `timm` default reaches 86.9% with a ResNet-50 and 84.9% with a ViT-S/16; a randomly initialised first layer gets 86.8% and 85.0%. <!-- result -->
+> Routing R, G, B through the original weights and the other bands through a zero-initialised copy is the one consistent gain: +0.7 points on both models, and +3.4 on the ViT with a tenth of the labels. Squashing the input to pseudo-RGB costs 4.2 and 3.6 points. Which band inherits which kernel moves accuracy by about half a point. <!-- result -->
 
 ## What `timm` does today
 
@@ -43,7 +43,7 @@ The pretrained kernels for red, green and blue are tiled along the input dimensi
 
 ViTs go through the same function. In `timm`, a patch embedding is an `nn.Conv2d` with kernel size and stride equal to the patch size,[^patch] so its weight has the same `(out, 3, k, k)` shape as a stem convolution and is tiled the same way. The only difference is that a $16 \times 16$ patch kernel is tiled instead of a $7 \times 7$ one. The two cases are shown side by side in Figure 1.
 
-![Figure 1: TODO(figure) The R, G, B kernels of a pretrained stem (left) and patch embedding (right) are tiled across N input bands and scaled by 3/N.](fig1_tiling.png){width=90%}
+![Figure 1: What `timm` does with the first layer when `in_chans` is 12. The pretrained R, G, B kernels of a ResNet stem (top) or a ViT patch embedding (bottom) are repeated along the input dimension, truncated to the requested number of bands and scaled by 3/12. Band labels follow the Similar-but-Different order.](fig1_tiling.png){width=90%}
 
 Two details matter later. First, when $N$ is not a multiple of three the truncation leaves the kernels unevenly represented: with thirteen bands there are five copies of the red kernel and four each of green and blue, so the scaling no longer preserves the sum of input weights and the stem leans slightly red. Second, nothing in the procedure knows what a band is. It only knows its position.
 
@@ -76,15 +76,15 @@ Nobody chose this. The visible bands are swapped because Sentinel-2 numbers them
 
 Does the order matter after fine-tuning? Figure 2 fine-tunes the default adapter under five band orders: native, RGB first, reversed, and two random permutations.
 
-![Figure 2: TODO(results: E0) Test accuracy of the `timm` default under five band orders, ResNet-50 and ViT-S/16, three seeds each.](fig2_permutation.png){width=80%}
+![Figure 2: Test accuracy of the `timm` default under five band orders after full fine-tuning on Similar-but-Different, ResNet-50 and ViT-S/16. Dots are means over three seeds, bars the seed range. The whole spread is about half a point for both models.](fig2_permutation.png){width=80%}
 
-**TODO(results: E0)** Two or three sentences: the spread across orders, whether RGB-first helps, and whether the ViT or the ResNet cares more.
+Not after fine-tuning, it turns out. The spread across the five orders is 0.5 points for the ResNet (86.4 to 86.9) and 0.6 for the ViT (84.9 to 85.5), the same size as the seed-to-seed range of any single order. Putting R, G, B first does not help: it is the worst order for the ResNet (86.4) and tied for best on the ViT (85.5). Twenty epochs of end-to-end training are enough for the network to forget which band got which kernel. The arbitrariness is real at initialisation; whether it survives depends on what you do next, which is what the rest of the post is about. <!-- result -->
 
 ## Seven ways to plug in N bands
 
 The default is one point in a space of choices. In the Slack thread that started this post, the alternatives came out in about four minutes, and they are all easy to implement on top of `timm`. We compare seven conditions. Each is a few lines in [`adapters.py`](https://github.com/burakekim/channel-adapters/blob/main/src/channel_adapters/adapters.py), and the same code applies to the ResNet stem and the ViT patch embedding because `timm` exposes both as a `Conv2d` named in the pretrained config.
 
-![Figure 3: TODO(figure) The seven conditions. Grey blocks are pretrained and untouched, blue blocks are new, dashed blocks are pretrained but re-initialised.](fig3_adapters.png){width=100%}
+![Figure 3: The seven conditions. Grey blocks are pretrained and untouched, hatched blocks are pretrained weights rewritten by an adapter, blue blocks are new layers trained from a chosen initialisation.](fig3_adapters.png){width=100%}
 
 - **`timm-repeat`.** The default described above. Our baseline.
 - **`random-init`.** Throw the pretrained first layer away and initialise a new one with $N$ input channels. The rest of the network is pretrained. This is the reference point the `timm` comment compares itself to.
@@ -102,7 +102,7 @@ Two of the four alternatives (`pseudo-rgb`, `split-stem`) preserve the "contract
 
 **Datasets.** Our main dataset is [Similar-but-Different](https://geospatialml.com/posts/similar-but-different/), 30,927 Sentinel-2 L2A patches of $32 \times 32$ pixels in twelve bands across ten WorldCover classes, built so that RGB alone is insufficient: in that post a fine-tuned ResNet-18 went from 0.71 test accuracy with RGB to 0.82 with all twelve bands. That gap is what makes it a good test of adapters. If the extra bands did not matter, neither would how you plug them in. We use the fixed scene-disjoint split (24,741 / 3,093 / 3,093). Our second dataset is [EuroSAT](https://arxiv.org/abs/1709.00029), 27,000 patches of $64 \times 64$ pixels in thirteen bands across ten classes, with torchgeo's split (16,200 / 5,400 / 5,400). EuroSAT is the dataset most readers know, and also one where RGB already reaches about 98.6%, so we expect small differences there and report it as a sanity check rather than a verdict.
 
-**Protocol.** Full fine-tuning with AdamW, cosine schedule, batch size 256, mixed precision, 20 epochs at the full label budget, flips and 90-degree rotations as the only augmentation. Each band is standardised with its own training-set mean and standard deviation. The learning rate is chosen per model and adapter from {1e-4, 3e-4, 1e-3, 3e-3} on the validation split at the full budget (seed 0), and the whole sweep is reported as the sensitivity result. Label budgets of 100%, 10% and 1% of the training split, stratified by class, three seeds each. Linear probes train a logistic regression on frozen features with the regularisation strength swept on validation, as in the Similar-but-Different post.[^probe] Convergence speed is the first epoch at which validation accuracy reaches 95% of its final value. Every run writes one JSON file; every figure below is generated from those files.
+**Protocol.** Full fine-tuning with AdamW, cosine schedule, batch size 256, mixed precision, 20 epochs at the full label budget, flips and 90-degree rotations as the only augmentation. Each band is standardised with its own training-set mean and standard deviation. The learning rate is chosen per model and adapter on the validation split at the full budget (seed 0) from {1e-4, 3e-4, 1e-3, 3e-3}, extended to {1e-2, 3e-2} for the ResNet after every adapter peaked at the top of the first grid; the whole sweep is reported as the sensitivity result. Label budgets of 100%, 10% and 1% of the training split, stratified by class, three seeds each. Linear probes train a logistic regression on frozen features with the regularisation strength swept on validation, as in the Similar-but-Different post.[^probe] Convergence speed is the first epoch at which validation accuracy reaches 95% of its final value. Every run writes one JSON file; every figure below is generated from those files.
 
 [^probe]: Features are the pooled output for the ResNet and the class token for the ViT, standardised; inverse-regularisation strength $C \in \{10^{-3}, 10^{-2}, 10^{-1}, 1, 10\}$, selected on validation, scored on test.
 
@@ -116,55 +116,55 @@ We measure how adapters change downstream accuracy, speed and sensitivity. We do
 
 ### Full fine-tuning on Similar-but-Different
 
-![Figure 4: TODO(results: E2) Test accuracy per adapter at the full label budget, ResNet-50 (left) and ViT-S/16 (right); mean and range over three seeds. The dashed line is `rgb-only`.](fig4_main.png){width=95%}
+![Figure 4: Test accuracy per adapter after full fine-tuning on Similar-but-Different at the full label budget, ResNet-50 (left) and ViT-S/16 (right). Dots are means over three seeds, bars the seed range, the dashed line is `rgb-only`. Five of the seven conditions land within a point of each other; the two that feed the network fewer than twelve bands' worth of information do not.](fig4_main.png){width=95%}
 
-**TODO(results: E2)** Lead paragraph: which adapters beat `timm-repeat`, by how many points, and whether any fail to beat `rgb-only`. <!-- result -->
+**Five adapters tie, two lose.** With all labels, the five conditions that give the first layer a full view of the twelve bands finish within 0.9 points of each other on the ResNet (86.7 to 87.6) and within 1.8 on the ViT (83.8 to 85.6). The `timm` default sits in the middle of that pack at 86.9 ± 0.5 and 84.9 ± 0.3 (mean ± standard deviation over three seeds); a randomly initialised first layer is indistinguishable from it at 86.8 and 85.0, and so is the mean-RGB kernel at 87.0 and 85.2. The lesson of Figure 2 generalises: with enough labels and a full fine-tune, the first-layer initialisation washes out. <!-- result -->
 
-**TODO(results: E2)** Second paragraph: ResNet versus ViT. <!-- result -->
+**`split-stem` is the one consistent gain, and `pseudo-rgb` the one consistent loss.** Routing R, G, B through the original weights and the remaining nine bands through a zero-initialised copy is best on both models, 87.6 ± 0.3 and 85.6 ± 0.5, which is +0.7 points over the default in each case. That is about one standard deviation, so on its own it is suggestive rather than conclusive; the budget and convergence results below make the same point more strongly. Squashing the input to three pseudo-RGB channels before the pretrained stem costs 4.2 points on the ResNet (82.7) and 3.6 on the ViT (81.2). It starts out identical to `rgb-only` and never fully escapes it: a $1 \times 1$ projection to three channels is an information bottleneck, and the pretrained stem downstream was never built to read mixed bands. All twelve bands are worth 6.8 points over RGB on the ResNet and 4.5 on the ViT with the default, so the bottleneck gives back more than half of what the extra bands buy. <!-- result -->
+
+**Warming up the first layer does not help.** Training only the stem and the head for three epochs before unfreezing ends 0.2 points below the default on the ResNet (86.7) and 1.1 below on the ViT (83.8), and it is the slowest condition to converge. Under the same total epoch budget, the three frozen epochs are simply lost. <!-- result -->
 
 ### Fewer labels
 
-![Figure 5: TODO(results: E2) Test accuracy against label budget (1%, 10%, 100%), one line per adapter, both models.](fig5_budget.png){width=95%}
+![Figure 5: Test accuracy against label budget (1%, 10%, 100% of the training split), one line per adapter, mean over three seeds with the seed range shaded. The ViT separates the adapters at 10% labels; the ResNet does not.](fig5_budget.png){width=95%}
 
-**TODO(results: E2)** Does the ranking change at 1% and 10%? The initial-contract adapters (`pseudo-rgb`, `split-stem`) have the fewest randomly initialised parameters to learn from few labels, so this is where we expect them to separate, if anywhere. <!-- result -->
+**The ViT cares about the adapter when labels are scarce; the ResNet mostly does not.** At 10% of the labels the five full-view adapters span 7.0 points on the ViT but 1.9 on the ResNet. On the ViT, `split-stem` reaches 73.3 against 70.0 for the default (+3.4), 66.9 for random init and 66.3 for warmup; at 1% it is 49.2 against 46.4 (+2.7). On the ResNet the same comparison is 75.8 against 74.6 at 10% (+1.2) and 49.7 against 51.3 at 1% (−1.6), with seed standard deviations of 3.3 to 3.6 points at the 1% budget, so neither ResNet difference means much. `pseudo-rgb` is the clear loser at every budget: on the ViT with 1% labels it finishes at 37.0, below even `rgb-only` at 45.7. <!-- result -->
 
 ### Learning-rate sensitivity
 
-![Figure 6: TODO(results: E1) Validation accuracy against learning rate per adapter. A flat line is an adapter you do not have to tune.](fig6_lr.png){width=95%}
+![Figure 6: Validation accuracy against learning rate at the full budget (seed 0), one line per adapter. The ResNet grid was extended to 1e-2 and 3e-2 after the first four points all peaked at the top of the range. A flat line is an adapter you do not have to tune.](fig6_lr.png){width=95%}
 
-**TODO(results: E1)** Which adapters are robust to the learning rate and which collapse at 3e-3. <!-- result -->
+**The two architectures want different things from the learning rate, and the adapters change how forgiving they are.** The ResNet improves monotonically up to 3e-3 for every adapter and degrades beyond 1e-2; across the six rates the full-view adapters move by 7.1 to 9.1 points, so the learning rate matters more than the adapter. The ViT peaks between 1e-4 and 1e-3 and is far flatter for the adapters that preserve the pretrained stem's input: `mean-rgb-init` moves by 1.1 points across the grid and `split-stem` by 1.4, the default by 3.0, warmup by 3.7, and `rgb-only` by 9.1 because it collapses at 3e-3. If you are not going to sweep the learning rate, `split-stem` is the safest choice on the ViT; on the ResNet, sweep it. <!-- result -->
 
 ### Convergence
 
-![Figure 7: TODO(results: E2) Validation accuracy per epoch at the full budget, one curve per adapter, both models.](fig7_convergence.png){width=95%}
+![Figure 7: Validation accuracy per epoch at the full budget, mean over three seeds, one curve per adapter. `split-stem` leads from the first epoch on the ViT; `warmup` starts lowest on both models and catches up only after unfreezing.](fig7_convergence.png){width=95%}
 
-**TODO(results: E2)** Epochs to 95% of final accuracy per adapter, and whether the `warmup` stage pays for its three frozen epochs. <!-- result -->
+Counting the first epoch at which validation accuracy reaches 95 percent of its final value, `split-stem` is the fastest condition on the ViT at 5.3 epochs against 7.3 for the default and 9.3 for warmup, and it leads at every epoch of Figure 7. On the ResNet the default and `mean-rgb-init` converge fastest (10.0 and 10.3 epochs); `split-stem` at its selected, higher learning rate takes 13.3, so the speed advantage is a ViT story. `warmup` starts far below everything else on both models, because for three epochs only the stem and the head move, and spends the remaining epochs catching up. <!-- result -->
 
 ### Linear probes
 
 {{< include tables/table2_probe_sbd.md >}}
 
-Table 2: TODO(results: E3) Linear-probe test accuracy on frozen features, Similar-but-Different. `pseudo-rgb` and `split-stem` are identical to `rgb-only` when frozen, so their rows measure the probe's noise. Mean over three subsamples at 10% and 1%.
+Table 2: Linear-probe test accuracy on frozen features, Similar-but-Different, at three label budgets (mean over three subsamples at 10% and 1%). `pseudo-rgb` and `split-stem` are identical to `rgb-only` when frozen, so their rows repeat it. Best value per column in bold.
 
-**TODO(results: E3)** A frozen network with a tiled stem sees twelve bands through filters built for three; the probe tells us whether those features are better or worse than simply dropping the extra bands. <!-- result -->
+**Frozen, the default is the only adapter worth having.** A frozen network with a tiled stem sees twelve bands through filters built for three, and it still beats dropping the extra bands, by 1.1 points on the ResNet (60.7 against 59.6) and 1.5 on the ViT (59.9 against 58.5), with similar margins at 10% and 1% labels. The two initialisations that discard the pretrained kernels are much worse when nothing downstream can adapt to them: random init loses 7.5 and 5.2 points to `rgb-only`, mean-RGB init 9.7 and 6.8. The ordering is the reverse of the fine-tuning picture, where mean-RGB init was as good as anything. What the first layer computes matters enormously when it is frozen and hardly at all when it is not. <!-- result -->
 
 ### EuroSAT
 
 {{< include tables/table3_eurosat.md >}}
 
-Table 3: TODO(results: E4, E4p) EuroSAT test accuracy, full label budget, mean ± standard deviation over three seeds for fine-tuning. Best value per column in bold.
+Table 3: EuroSAT test accuracy at the full label budget. Fine-tuning: mean ± standard deviation over three seeds. Probe: logistic regression on frozen features. Best value per column in bold.
 
-**TODO(results: E4)** One paragraph. We expect the differences to be within a point. <!-- result -->
+As expected, fine-tuning saturates: every condition lands between 97.8 and 99.1, and the only one that stands out is `random-init` on the ViT at 97.8. The probes repeat the Similar-but-Different ordering with one difference: on EuroSAT the frozen tiled stem is *worse* than `rgb-only` (92.5 against 94.7 on the ResNet, 92.3 against 94.2 on the ViT). The extra bands carry little that EuroSAT needs, so the tiled filters add noise without adding signal; random init loses 16.2 and 15.9 points frozen. Which way the frozen comparison goes depends on whether the extra bands matter for your task, which is exactly what Similar-but-Different was built to make true. <!-- result -->
 
 ### Does the first layer's "surprise" predict any of this?
 
-![Figure 8: TODO(results: E5) Linear CKA between the adapted first layer's output on all bands and the original first layer's output on RGB, at initialisation, against the fine-tuned accuracy gap to the best adapter.](fig8_cka.png){width=80%}
-
-**TODO(results: E5)** Kept only if the relationship is visible. If not, we say so in one sentence and drop the figure. <!-- result -->
+We also measured, at initialisation, the linear CKA between each adapted first layer's output on all bands and the original first layer's output on RGB, hoping the mismatch would predict fine-tuning difficulty. It does not. The three conditions that preserve the pretrained input exactly (`rgb-only`, `pseudo-rgb`, `split-stem`) all score 1.0 and then finish between 0 and 7.5 points apart; the default, random init and mean-RGB init all score about 0.7 and finish within a point of each other. A similarity measure between two linear maps of the same highly correlated input is mostly measuring the input. The numbers are in `results/E5/` for anyone who wants a second look. <!-- result -->
 
 ## Conv versus ViT
 
-**TODO(results: E2, E4)** What is the same (the mechanism, the band-order dependence) and what differs. One hypothesis to test against the data: a ViT patch embedding is a single linear layer followed by attention, so a badly initialised embedding is a linear mistake the first block can partially undo, while a convolutional stem is followed by a nonlinearity and a max-pool before the first residual block. Whether the ViT is therefore more forgiving of `timm-repeat` is an empirical question the figures above answer. <!-- result -->
+The mechanism is identical: in both cases one `Conv2d` weight is tiled and rescaled, and the same seven adapters apply unchanged. The ranking is the same too: `split-stem` first, `pseudo-rgb` last among the twelve-band conditions, the default in the middle, on both architectures and both datasets. Where they differ is in how much the choice matters. With all labels the five full-view adapters span 0.9 points on the ResNet and 1.8 on the ViT; with 10% of the labels, 1.9 against 7.0. The ViT is the more sensitive architecture at low budgets, more sensitive to the learning rate for the adapters that break the pretrained input (`rgb-only` loses 9.1 points across the grid, `split-stem` 1.4), and the one where warmup hurts most. One reading is that a patch embedding is a single linear layer feeding directly into attention, so whatever it does at initialisation is seen by every token of every block from the first step, whereas a ResNet stem is followed by a nonlinearity, a max-pool and sixteen residual blocks that can absorb a bad start. We did not test that explanation; it is the kind of question the "surprise" experiments at the end of this post are for. <!-- result -->
 
 ## Limitations
 
@@ -179,12 +179,15 @@ If you adopt a recipe from this post, validate it on a representative sample of 
 
 ## Takeaways
 
-**TODO(results: all)** Numbered, each a bold imperative followed by one line of evidence, stated only as strongly as the results support. The shape we expect, to be rewritten from the data:
+Stated only as strongly as two backbones, two datasets and three seeds allow:
 
-1. **TODO.** If you can afford to fine-tune everything, ... <!-- result -->
-2. **TODO.** If you are label-poor, ... <!-- result -->
-3. **TODO.** If you are not going to fine-tune the backbone at all, ... <!-- result -->
-4. **Put your bands in a known order and look at Table 1 before trusting a default.** Under `timm`'s tiling, blue inherits the green kernel and both SWIR bands inherit visible-light kernels for the two band orders in this post.
+1. **If you fine-tune everything, the `timm` default is fine.** On Similar-but-Different it finishes within 0.9 points (ResNet-50) and 1.8 points (ViT-S/16) of every other initialisation that keeps all twelve bands, including a randomly initialised first layer. Do not spend time replacing it with a cleverer initialisation. <!-- result -->
+2. **If you want a free improvement, use `split-stem`.** R, G, B through the original weights, the other bands through a zero-initialised copy, outputs summed. It is +0.7 points over the default on both models with all labels, +3.4 on the ViT with 10% of the labels, the fastest condition to converge on the ViT (5.3 against 7.3 epochs), and the least sensitive to the learning rate. It starts exactly where the RGB model starts, so it can only add. <!-- result -->
+3. **Do not squash the input to pseudo-RGB.** A learned projection from N bands to three in front of the pretrained stem costs 4.2 points (ResNet) and 3.6 (ViT) with all labels, and on the ViT with 1% of the labels it is 8.7 points below simply dropping the extra bands. <!-- result -->
+4. **Do not bother warming up the first layer.** Under a fixed epoch budget, three epochs of stem-only training end 0.2 (ResNet) and 1.1 (ViT) points below just training everything from the start. <!-- result -->
+5. **If the backbone stays frozen, keep the tiled stem, or stay RGB.** Frozen, the default beats `rgb-only` by 1.1 and 1.5 points on Similar-but-Different and loses to it by 2.2 and 1.9 on EuroSAT, depending on whether the extra bands matter for the task. Random or mean-RGB initialisations of a frozen first layer cost 5 to 16 points. <!-- result -->
+6. **Band order does not matter once you fine-tune.** Five orders, including two random permutations, differ by 0.5 and 0.6 points. It still decides what the network sees at step zero, so look at Table 1 before trusting a default in any setting where the first layer stays frozen.
+7. **Sweep the learning rate for the ResNet.** Every adapter gained 7 to 11 points between 1e-4 and 3e-3, more than any adapter choice is worth. <!-- result -->
 
 ## What we did not do, and want to
 
@@ -196,7 +199,7 @@ Everything in this post is one command per figure. The repository holds the adap
 
 ```python
 model = timm.create_model("resnet50.a1_in1k", pretrained=True, num_classes=10)
-adapt_model(model, "TODO(results: all)", n_bands=12, rgb=[3, 2, 1])   # positions of R, G, B in your band order
+adapt_model(model, "split-stem", n_bands=12, rgb=[3, 2, 1])   # positions of R, G, B in your band order
 ```
 
 ## Links

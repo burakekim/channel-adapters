@@ -356,6 +356,36 @@ def _bold_best(lines, path):
     print("wrote", path.name)
 
 
+def derived(e0, e2):
+    """Gaps the prose quotes: adapter minus timm-repeat and minus rgb-only, per model and budget; permutation spread."""
+    if e2.empty:
+        return
+    for m, name in MODELS.items():
+        d = e2[(e2.model == m) & (e2.band_order == "native")]
+        for b in sorted(d.budget.unique()):
+            g = d[d.budget == b].groupby("adapter")["test_acc"].mean() * 100
+            sd = d[d.budget == b].groupby("adapter")["test_acc"].std(ddof=0) * 100
+            for a in g.index:
+                NUMBERS[f"E2_{name}_{a}_b{b:g}_std"] = round(sd[a], 1)
+                NUMBERS[f"gap_{name}_{a}_vs_timm_b{b:g}"] = round(g[a] - g.get("timm-repeat", float("nan")), 1)
+                NUMBERS[f"gap_{name}_{a}_vs_rgb_b{b:g}"] = round(g[a] - g.get("rgb-only", float("nan")), 1)
+            NUMBERS[f"spread_{name}_nonbottleneck_b{b:g}"] = round(g.drop(["pseudo-rgb", "rgb-only"], errors="ignore").max() - g.drop(["pseudo-rgb", "rgb-only"], errors="ignore").min(), 1)
+        NUMBERS[f"E2_{name}_n_seeds"] = int(d[d.budget == 1.0].groupby("adapter").size().max())
+    for exp in ("E3", "E4p"):
+        probe = load(exp)
+        if probe.empty:
+            continue
+        acc = {}
+        for _, r in probe.iterrows():
+            for p_ in r["probe"]:
+                acc.setdefault((MODELS[r.model], r.adapter, p_["budget"]), []).append(p_["test_acc"] * 100)
+        for (name, a, b), v in acc.items():
+            NUMBERS[f"{exp}_{name}_{a}_b{b:g}"] = round(float(np.mean(v)), 1)
+            ref = acc.get((name, "rgb-only", b))
+            if ref:
+                NUMBERS[f"gap_{exp}_{name}_{a}_vs_rgb_b{b:g}"] = round(float(np.mean(v) - np.mean(ref)), 1)
+
+
 def main():
     both(fig_tiling, "fig1_tiling")
     both(fig_adapters, "fig3_adapters")
@@ -368,6 +398,7 @@ def main():
     both(fig_cka, "fig8_cka", e2)
     table_probe("E3", TABLES / "table2_probe_sbd.md")
     table_eurosat(TABLES / "table3_eurosat.md")
+    derived(e0, e2)
     (POST / "numbers.json").write_text(json.dumps(dict(sorted(NUMBERS.items())), indent=1))
     print(len(NUMBERS), "numbers written")
 

@@ -2,7 +2,7 @@
 
 How should you feed a 12- or 13-band satellite image to a network that was pretrained on RGB? This repository holds the adapters, experiments, results and the draft of a blog post on that question, by Burak Ekim (MIT CSAIL) and Caleb Robinson (Microsoft AI for Good Research Lab), intended for [geospatialml.com](https://geospatialml.com/).
 
-**Status: draft, experiments not yet run.** The post contains `TODO(results: ...)` placeholders wherever a number will go. Nothing in the post is a result until a file in `results/` backs it.
+**Status: first complete draft (2026-11-12), not yet reviewed by both authors.** All planned experiments have run (about 300 fine-tuning runs and 24 linear probes, roughly 9 GPU-hours on L40S GPUs); every number in the post is regenerated from `results/` by `experiments/make_figures.py` and cross-checked by `experiments/check_numbers.py`.
 
 ## What is in here
 

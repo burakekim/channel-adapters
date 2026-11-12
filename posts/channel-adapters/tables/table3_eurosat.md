@@ -1,9 +1,9 @@
 | Adapter | ResNet-50, fine-tune | ResNet-50, probe | ViT-S/16, fine-tune | ViT-S/16, probe |
 |---|---:|---:|---:|---:|
-| `timm-repeat` | **99.0 ± 0.0** | 92.5 | n/a | 92.3 |
-| `random-init` | n/a | 78.5 | n/a | 78.3 |
-| `mean-rgb-init` | n/a | 89.4 | n/a | 89.0 |
-| `rgb-only` | n/a | 94.7 | n/a | 94.2 |
-| `pseudo-rgb` | n/a | 94.7 | n/a | 94.2 |
-| `split-stem` | n/a | **94.7** | n/a | **94.2** |
-| `warmup` | n/a | n/a | n/a | n/a |
+| `timm-repeat` | 99.0 ± 0.0 | 92.5 | 98.8 ± 0.1 | 92.3 |
+| `random-init` | 98.8 ± 0.1 | 78.5 | 97.8 ± 0.0 | 78.3 |
+| `mean-rgb-init` | 98.9 ± 0.0 | 89.4 | 98.7 ± 0.1 | 89.0 |
+| `rgb-only` | **99.0 ± 0.1** | 94.7 | 99.1 ± 0.0 | 94.2 |
+| `pseudo-rgb` | 98.8 ± 0.0 | 94.7 | 99.0 ± 0.0 | 94.2 |
+| `split-stem` | 98.8 ± 0.0 | **94.7** | **99.1 ± 0.0** | **94.2** |
+| `warmup` | 98.9 ± 0.1 | n/a | 98.4 ± 0.1 | n/a |

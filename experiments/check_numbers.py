@@ -37,11 +37,12 @@ for exp in sorted(set(re.findall(r"TODO\(results: (E\d\w*)", text))):
 
 # 1. literal numbers inside sentences tagged as results: `<!-- result -->` marks a line
 if NUMBERS.exists():
-    allowed = {round(float(v), 1) for v in json.loads(NUMBERS.read_text()).values() if isinstance(v, (int, float))}
+    allowed = {round(abs(float(v)), 1) for v in json.loads(NUMBERS.read_text()).values() if isinstance(v, (int, float))}
     for line in text.splitlines():
         if "<!-- result -->" not in line:
             continue
-        for num in re.findall(r"(?<![\w.])(\d+\.\d+|\d+)(?=%|\s|,|\.|\))", line):
+        # a result number is one with a decimal point or a percent sign; integers (seeds, epochs, list numbers) are not checked
+        for num in re.findall(r"(?<![\w.])(\d+\.\d+|\d+(?=%))", line):
             if round(float(num), 1) not in allowed:
                 errors.append(f"number {num} on a result line is not in numbers.json: {line.strip()[:80]}")
 

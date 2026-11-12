@@ -3,10 +3,10 @@
   "rgb-only": 0.003,
   "mean-rgb-init": 0.003,
   "warmup": 0.003,
-  "split-stem": 0.003,
+  "split-stem": 0.01,
   "timm-repeat": 0.003,
   "random-init": 0.003,
-  "pseudo-rgb": 0.003
+  "pseudo-rgb": 0.01
  },
  "vit_small_patch16_224.augreg_in21k": {
   "warmup": 0.0003,

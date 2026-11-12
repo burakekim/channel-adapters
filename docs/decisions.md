@@ -17,3 +17,10 @@ Dated design decisions that are not derivable from the code. Newest last.
 - **Convergence speed.** Defined as the first epoch at which validation accuracy reaches 95% of its final value.
 - **Compute.** Slurm array on `vision-beery-l40s`; the local L40S is for smoke tests and timing. Every script is single-GPU.
 - **Preview.** Public GitHub repo with GitHub Pages. The post carries `draft: true`. Remote creation waits for explicit confirmation.
+
+## 2026-11-12: after the first full pass
+
+- **Learning-rate grid extended for the ResNet (E1b).** In E1 the best ResNet learning rate was the top of the grid (3e-3) for every adapter, so the grid did not bracket the optimum. Added 1e-2 and 3e-2 for the ResNet only. The picker reads E1 and E1b together; any adapter whose pick changes has its E0/E2/E4 ResNet rows rerun at the new rate (run ids include the rate, so old files stay and the figure script filters to the chosen rate).
+- **Figure 8 (CKA versus fine-tuning gap) dropped from the post.** Linear CKA at initialisation between the adapted first layer and the RGB first layer is about 0.7 for timm-repeat, mean-RGB and random init alike, and exactly 1 for rgb-only, pseudo-rgb and split-stem, which end up 0 to 7.5 points apart after fine-tuning. The diagnostic does not track difficulty; the numbers stay in `results/E5/` and the post says so in one sentence.
+- **Numbers quoted in prose.** `make_figures.py` also writes the derived gaps (adapter minus timm-repeat, adapter minus rgb-only, spread of the non-bottleneck adapters) into `numbers.json`, so `check_numbers.py` can verify them.
+- **Headline, as the data supports it.** With full fine-tuning the five full-view adapters tie within 0.9 (ResNet-50) and 1.8 (ViT-S/16) points on Similar-but-Different; `split-stem` is +0.7 over the default on both and +3.4 on the ViT at 10% labels; `pseudo-rgb` loses 4.2 / 3.6; warmup loses 0.2 / 1.1; band order spread is 0.5 / 0.6. Frozen, the tiled stem beats RGB-only on Similar-but-Different and loses on EuroSAT. The post's takeaways are limited to these statements.
