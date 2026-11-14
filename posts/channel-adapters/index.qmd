@@ -1,6 +1,6 @@
 ---
 title: "More Bands Than Kernels: Does It Matter How You Adapt an RGB Model to Multispectral Imagery?"
-description: "When you load a pretrained model with `in_chans=13`, timm copies the red, green and blue filters across all thirteen bands, so your shortwave infrared bands end up with filters learned for visible light. We compare this default with a few alternatives on a ResNet and a ViT."
+description: "How should you adapt an RGB-pretrained model to satellite imagery with more than three bands? We compare timm's default approach with a few alternatives on a ResNet and a ViT."
 date: 2026-11-14
 categories: [multispectral, transfer-learning, timm, sentinel-2]
 draft: true
