@@ -16,7 +16,7 @@ The draft lives in `posts/channel-adapters/index.qmd`.
 
 ## Preview
 
-The rendered draft is published at <https://burakekim.github.io/channel-adapters/posts/channel-adapters/index.html> on every push to `main`.
+The rendered draft is published to this repository's GitHub Pages site on every push to `main`.
 
 To preview locally, install [Quarto](https://quarto.org/) 1.10 and run:
 
