@@ -10,7 +10,8 @@ Working draft of a blog post on adapting RGB-pretrained models to multispectral 
 |---|---|
 | Title and description | drafted |
 | Introduction | drafted |
-| Everything after the introduction | not started |
+| How timm does it | drafted |
+| Everything after that | not started |
 
 The draft lives in `posts/channel-adapters/index.qmd`.
 
