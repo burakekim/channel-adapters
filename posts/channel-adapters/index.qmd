@@ -32,6 +32,14 @@ conv_weight *= base_chans / float(in_chans)
 
 Because thirteen is not a multiple of three, the red filter ends up used five times and green and blue four times each.
 
+::: {.light-content}
+![One filter from the first layer of an ImageNet-pretrained ResNet-50 (`resnet50.a1_in1k`), applied first to a photo and then, after timm's tiling, to a 13-band Sentinel-2 patch from EuroSAT. The filter, the tiling and both outputs are computed from the real weights and images. Cat photo by Stefan van der Walt (CC0), via scikit-image.](tiling.gif){fig-alt="Animation. A cat photo is split into red, green and blue channels, each convolved with its own part of a pretrained filter and summed. Then a 13-band Sentinel-2 river patch is shown band by band, and the red, green and blue filter parts are assigned to the bands in repeating order, so the blue band gets the green part, the green band gets the blue part and the two shortwave infrared bands get the green and blue parts."}
+:::
+
+::: {.dark-content}
+![One filter from the first layer of an ImageNet-pretrained ResNet-50 (`resnet50.a1_in1k`), applied first to a photo and then, after timm's tiling, to a 13-band Sentinel-2 patch from EuroSAT. The filter, the tiling and both outputs are computed from the real weights and images. Cat photo by Stefan van der Walt (CC0), via scikit-image.](tiling_dark.gif){fig-alt="Animation. A cat photo is split into red, green and blue channels, each convolved with its own part of a pretrained filter and summed. Then a 13-band Sentinel-2 river patch is shown band by band, and the red, green and blue filter parts are assigned to the bands in repeating order, so the blue band gets the green part, the green band gets the blue part and the two shortwave infrared bands get the green and blue parts."}
+:::
+
 The comment on top is the honest part. The authors expect the tiling to beat a random initialisation, but they also say that "there could be other combinations of the original input layer weights that'd work better for specific cases." Multispectral imagery is one of those cases, and finding out whether a better combination exists is what the rest of this post is about.
 
 ViTs go through the same function. In timm, a ViT's patch embedding is a convolution whose kernel size and stride both equal the patch size, `nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)` ([source](https://github.com/huggingface/pytorch-image-models/blob/a8ed818888c2f594d9538e5f2d32757554c28571/timm/layers/patch_embed.py#L62)). Its weights have the same `(out_channels, 3, k, k)` shape as a ResNet's first convolution, so timm tiles the 16 × 16 patch filters of a ViT exactly the way it tiles the 7 × 7 filters of a ResNet.

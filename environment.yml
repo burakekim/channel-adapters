@@ -21,3 +21,4 @@ dependencies:
       - pytest
       - tqdm
       - requests
+      - scikit-image==0.26.0
