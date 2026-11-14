@@ -38,4 +38,13 @@ Because thirteen is not a multiple of three, the red filter ends up used five ti
 
 ViTs go through the same function. In timm, a ViT's patch embedding is a convolution whose kernel size and stride both equal the patch size, `nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)` ([source](https://github.com/huggingface/pytorch-image-models/blob/a8ed818888c2f594d9538e5f2d32757554c28571/timm/layers/patch_embed.py#L62)). Its weights have the same `(out_channels, 3, k, k)` shape as a ResNet's first convolution, so timm tiles the 16 × 16 patch filters of a ViT exactly the way it tiles the 7 × 7 filters of a ResNet.
 
-The rest of the network was trained on the outputs of the original RGB filters, so after this change it receives inputs unlike anything it saw during pretraining. There are other ways to add the extra bands. You can map all the bands to three channels with a small learned layer placed before the original first layer. You can send the RGB bands through the original filters and the other bands through a separate new layer. Or you can train only the first layer for a while before training the whole network. In this post we compare timm's approach with these alternatives on a ResNet and a ViT, and measure how much the choice matters when fine-tuning.
+timm's comment calls the tiling better than random, not best. It is the default because it is simple and needs no data. We have not found a study that compares it with the alternatives on multispectral imagery, so we ran that comparison ourselves.
+
+Any way of adding bands has to answer two questions. What should the first layer do with the extra bands when training starts? And should the first layer be trained differently from the rest of the network? For the first question, the options we test differ in how much of the pretrained model they leave intact at the start:
+
+- **Change the first layer, as timm does, but differently.** Give every band the average of the three filters, or start the first layer from random weights. These tell us whether the tiling itself helps.
+- **Leave the pretrained model unchanged at the start.** Feed it only the red, green and blue bands. Or add a small learned layer that maps all bands to three channels and starts out simply passing red, green and blue through. Or send red, green and blue through the original filters and the other bands through a new layer that starts at zero. The last two begin exactly as the RGB model and can learn to use the extra bands during fine-tuning.
+
+For the second question, we train only the first layer for a few epochs before training the whole network.
+
+This list is not exhaustive. It covers simple options that work with any RGB checkpoint and need no extra data or pretraining, and leaves out models built from the start to accept any set of bands. We run every option on a ResNet and a ViT and measure how much the choice matters when fine-tuning.
