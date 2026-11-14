@@ -17,8 +17,6 @@ website:
         text: Home
       - href: posts/channel-adapters/index.qmd
         text: Draft post
-      - href: https://github.com/burakekim/channel-adapters
-        text: GitHub
   drafts:
     - posts/channel-adapters/index.qmd
   draft-mode: visible   # the whole point of this site is to read the draft
@@ -32,5 +30,4 @@ format:
     toc-depth: 3
     code-fold: false
     code-copy: true
-    citation: true
     fig-cap-location: bottom

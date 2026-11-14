@@ -2,9 +2,6 @@
 title: "channel-adapters"
 ---
 
-Working draft of a geospatialml.com post by Burak Ekim and Caleb Robinson on adapting RGB-pretrained models to multispectral inputs.
+Working draft of a blog post on adapting RGB-pretrained models to multispectral inputs.
 
 - [Read the draft post](posts/channel-adapters/index.qmd)
-- [Repository and experiments](https://github.com/burakekim/channel-adapters)
-
-Status, scope and style notes live in the repository's `docs/` folder.
