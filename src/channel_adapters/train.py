@@ -38,11 +38,11 @@ class RunConfig:
     lr: float = 1e-3
     mode: str = "finetune"              # or "probe"
     epochs: int | None = None
-    warmup_epochs: int = 3              # only used by adapter == "warmup"
+    stage1_frac: float = 0.15           # adapter == "warmup": fraction of steps training only the first layer + head
     img_size: int = 128
     batch_size: int = 256
     weight_decay: float = 0.05
-    lr_warmup_epochs: int = 1
+    lr_warmup_frac: float = 0.05        # linear learning-rate warmup, as a fraction of all steps
     probe_budgets: tuple[float, ...] = (1.0, 0.1, 0.01)
     probe_seeds: tuple[int, ...] = (0, 1, 2, 3, 4)
     exp: str = "dev"
@@ -137,7 +137,10 @@ def finetune(cfg: RunConfig, model, splits, device) -> dict:
     steps_per_epoch = max(1, math.ceil(n / cfg.batch_size))
     epochs = cfg.epochs or EPOCHS_FOR_BUDGET.get(cfg.budget, 20)
     total_steps = epochs * steps_per_epoch
-    warm_steps = cfg.lr_warmup_epochs * steps_per_epoch
+    # both warmups are fractions of training, so they mean the same thing at every label budget
+    # (at the full budget they equal 1 and 3 epochs exactly: 97 and 291 of 1940 steps)
+    warm_steps = max(1, round(cfg.lr_warmup_frac * total_steps))
+    stage1_steps = round(cfg.stage1_frac * total_steps) if cfg.adapter == "warmup" else 0
 
     mult = FIRST_LAYER_LR_MULT.get(cfg.adapter, 1.0)
     if mult != 1.0:
@@ -157,13 +160,13 @@ def finetune(cfg: RunConfig, model, splits, device) -> dict:
 
     curve, step, t0 = [], 0, time.time()
     for epoch in range(epochs):
-        if stage1 and epoch == cfg.warmup_epochs:
-            set_trainable(model, list(model.parameters()))
-            stage1 = False
         model.train()
         perm = torch.randperm(n, device=device)
         running = 0.0
         for i in range(0, n, cfg.batch_size):
+            if stage1 and step >= stage1_steps:
+                set_trainable(model, list(model.parameters()))
+                stage1 = False
             idx = perm[i:i + cfg.batch_size]
             x = resize(augment(train.x[idx]), cfg.img_size)
             with torch.autocast("cuda", dtype=torch.bfloat16):
@@ -184,6 +187,8 @@ def finetune(cfg: RunConfig, model, splits, device) -> dict:
         "test_acc": evaluate(model, test, cfg.img_size),
         "epochs": epochs,
         "steps": total_steps,
+        "lr_warmup_steps": warm_steps,
+        "stage1_steps": stage1_steps,
         "epochs_to_95pct": reach,
         "curve": curve,
         "train_time_s": time.time() - t0,

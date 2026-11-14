@@ -91,7 +91,7 @@ SLURM = """#!/bin/bash
 #SBATCH --output={logdir}/%A_%a.out
 cd {root}
 export CHADAPT_DATA={data}
-{python} experiments/run.py --exp {exp} --index $SLURM_ARRAY_TASK_ID {force}
+{python} experiments/run.py --exp {exp} --index $SLURM_ARRAY_TASK_ID {force} {budgets}
 """
 
 
@@ -109,18 +109,23 @@ def main() -> None:
     p.add_argument("--max-parallel", type=int, default=16)
     p.add_argument("--pick-lr", action="store_true")
     p.add_argument("--only-todo", action="store_true", help="with --slurm: submit only runs without results")
+    p.add_argument("--budgets", type=float, nargs="*", help="restrict to these label budgets")
     a = p.parse_args()
 
     if a.pick_lr:
         pick_lr()
         return
     runs = expand(a.exp)
+    if a.budgets:
+        runs = [r for r in runs if r.budget in a.budgets]
+        if not (a.list or a.all or a.slurm or a.index is not None):
+            raise SystemExit("--budgets needs --list, --all, --slurm or --index")
     if a.list:
         for i, r in enumerate(runs):
             print(i, "done" if done(r) else "todo", r.run_id())
         print(len(runs), "runs,", sum(done(r) for r in runs), "done")
     elif a.index is not None:
-        cfg = runs[a.index]
+        cfg = runs[a.index]  # with --budgets the index refers to the filtered list
         if done(cfg) and not a.force:
             print("skip", cfg.run_id())
             return
@@ -134,7 +139,7 @@ def main() -> None:
     elif a.slurm:
         logdir = ROOT / "slurm_logs"
         logdir.mkdir(exist_ok=True)
-        script = SLURM.format(force='--force' if a.force else '', exp=a.exp, partition=a.partition, account=a.account, qos=a.qos, last=len(runs) - 1, max_parallel=a.max_parallel,
+        script = SLURM.format(budgets=('--budgets ' + ' '.join(map(str, a.budgets))) if a.budgets else '', force='--force' if a.force else '', exp=a.exp, partition=a.partition, account=a.account, qos=a.qos, last=len(runs) - 1, max_parallel=a.max_parallel,
                               logdir=logdir, root=ROOT, python=sys.executable,
                               data=os.environ.get("CHADAPT_DATA", Path.home() / ".cache" / "channel-adapters"))
         path = logdir / f"{a.exp}.sbatch"

@@ -1,0 +1,137 @@
+{
+ "config": {
+  "dataset": "eurosat",
+  "model": "vit_small_patch16_224.augreg_in21k",
+  "adapter": "wavelength-init",
+  "band_order": "native",
+  "budget": 1.0,
+  "seed": 0,
+  "lr": 0.0,
+  "mode": "probe",
+  "epochs": null,
+  "warmup_epochs": 3,
+  "img_size": 128,
+  "batch_size": 256,
+  "weight_decay": 0.05,
+  "lr_warmup_epochs": 1,
+  "probe_budgets": [
+   1.0,
+   0.1,
+   0.01
+  ],
+  "probe_seeds": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "exp": "E4p",
+  "tag": ""
+ },
+ "run_id": "eurosat_vit_small_patch16_224_wavelength-init_native_b1_s0_lr0_probe",
+ "git_sha": "6d9a85e",
+ "bands": [
+  "B01",
+  "B02",
+  "B03",
+  "B04",
+  "B05",
+  "B06",
+  "B07",
+  "B08",
+  "B09",
+  "B10",
+  "B11",
+  "B12",
+  "B8A"
+ ],
+ "rgb_positions": [
+  3,
+  2,
+  1
+ ],
+ "n_train": 16200,
+ "device": "NVIDIA L40S",
+ "probe": [
+  {
+   "budget": 1.0,
+   "seed": 0,
+   "l2": 0.001,
+   "val_acc": 0.9257407188415527,
+   "test_acc": 0.9235185384750366
+  },
+  {
+   "budget": 0.1,
+   "seed": 0,
+   "l2": 0.01,
+   "val_acc": 0.8855555653572083,
+   "test_acc": 0.8890740871429443
+  },
+  {
+   "budget": 0.1,
+   "seed": 1,
+   "l2": 0.01,
+   "val_acc": 0.8901851773262024,
+   "test_acc": 0.8829629421234131
+  },
+  {
+   "budget": 0.1,
+   "seed": 2,
+   "l2": 0.01,
+   "val_acc": 0.8898147940635681,
+   "test_acc": 0.885185182094574
+  },
+  {
+   "budget": 0.1,
+   "seed": 3,
+   "l2": 0.01,
+   "val_acc": 0.8849999904632568,
+   "test_acc": 0.881851851940155
+  },
+  {
+   "budget": 0.1,
+   "seed": 4,
+   "l2": 0.01,
+   "val_acc": 0.8881481289863586,
+   "test_acc": 0.8831481337547302
+  },
+  {
+   "budget": 0.01,
+   "seed": 0,
+   "l2": 0.1,
+   "val_acc": 0.7872222065925598,
+   "test_acc": 0.7868518233299255
+  },
+  {
+   "budget": 0.01,
+   "seed": 1,
+   "l2": 0.1,
+   "val_acc": 0.7653703689575195,
+   "test_acc": 0.7624074220657349
+  },
+  {
+   "budget": 0.01,
+   "seed": 2,
+   "l2": 0.1,
+   "val_acc": 0.7751851677894592,
+   "test_acc": 0.774814784526825
+  },
+  {
+   "budget": 0.01,
+   "seed": 3,
+   "l2": 0.1,
+   "val_acc": 0.7838888764381409,
+   "test_acc": 0.786481499671936
+  },
+  {
+   "budget": 0.01,
+   "seed": 4,
+   "l2": 0.1,
+   "val_acc": 0.7640740871429443,
+   "test_acc": 0.7583333253860474
+  }
+ ],
+ "feature_dim": 384,
+ "train_time_s": 11.049196004867554
+}
