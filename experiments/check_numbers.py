@@ -3,10 +3,10 @@
 
 Two checks:
 1. Every `{{< var ... >}}`-free numeric claim in the post must come from
-   `posts/channel-adapters/numbers.json`, which make_figures.py writes from
+   `posts/channel-adapters/numbers.json`, which make_results.py writes from
    results/. The post refers to numbers through that file's keys using Quarto
    inline code `{python} n["..."]`-style is not available in a plain .qmd
-   without an engine, so we keep it simple: make_figures.py writes
+   without an engine, so we keep it simple: make_results.py writes
    `numbers.json`, the post quotes those numbers literally, and this script
    verifies that every number appearing in a results sentence is present in
    numbers.json (within rounding).

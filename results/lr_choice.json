@@ -2,11 +2,13 @@
  "resnet50.a1_in1k": {
   "rgb-only": 0.003,
   "mean-rgb-init": 0.003,
+  "wavelength-init": 0.01,
   "warmup": 0.003,
   "split-stem": 0.01,
   "timm-repeat": 0.003,
   "random-init": 0.003,
-  "pseudo-rgb": 0.01
+  "pseudo-rgb": 0.01,
+  "stem-lr10": 0.003
  },
  "vit_small_patch16_224.augreg_in21k": {
   "warmup": 0.0003,
@@ -15,6 +17,8 @@
   "mean-rgb-init": 0.0003,
   "timm-repeat": 0.0003,
   "random-init": 0.001,
-  "split-stem": 0.0003
+  "wavelength-init": 0.0003,
+  "split-stem": 0.0003,
+  "stem-lr10": 0.0003
  }
 }

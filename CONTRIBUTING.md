@@ -12,7 +12,7 @@ Two authors, one repository, and coding agents on both sides. The workflow below
 
 ## Ground rules for the post
 
-- Every number, figure and claim in `posts/channel-adapters/index.qmd` comes from a file in `results/`. Figures are produced only by `experiments/make_figures.py`, never edited by hand. `experiments/check_numbers.py` cross-checks the numbers in the post against `results/` and fails CI on a mismatch.
+- Every number, figure and claim in `posts/channel-adapters/index.qmd` comes from a file in `results/`. Result figures and tables are produced only by `experiments/make_results.py`, never edited by hand. `experiments/check_numbers.py` cross-checks the numbers in the post against `results/` and fails CI on a mismatch.
 - Until a result exists, the text says `**TODO(results: E2)**`, naming the experiment that will supply it.
 - The voice is "we". Nothing is attributed to either author beyond what they actually said or ran.
 - `docs/style_notes.md` is the style reference; `docs/scope.md` is the scope reference. Change the document first if you want to change the rule.
