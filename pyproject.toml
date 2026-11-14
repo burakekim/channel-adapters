@@ -9,7 +9,6 @@ description = "Adapting RGB-pretrained conv and ViT models to multispectral inpu
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-authors = [{name = "Burak Ekim"}, {name = "Caleb Robinson"}]
 dependencies = ["torch", "timm>=1.0", "numpy"]
 
 [tool.setuptools.packages.find]

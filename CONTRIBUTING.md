@@ -5,7 +5,7 @@ Two authors, one repository, and coding agents on both sides. The workflow below
 ## Workflow
 
 1. `main` is protected. Nobody pushes to it directly, humans or agents.
-2. Work on a branch named `<owner>/<topic>` (`burak/lr-sweep`, `caleb/vit-section`). An agent working on someone's behalf uses that person's prefix.
+2. Work on a branch named `<owner>/<topic>` (for example `alice/lr-sweep`). An agent working on someone's behalf uses that person's prefix.
 3. Open a pull request. CI runs the tests, renders the post, and attaches the rendered site as a downloadable artifact on the PR. Merging to `main` deploys the rendered draft to GitHub Pages.
 4. Squash merge. The squash message says what changed and, for experiments, which `results/` files were added.
 5. Review comments go on the PR; design decisions that outlive the PR go into `docs/decisions.md` with a date.
