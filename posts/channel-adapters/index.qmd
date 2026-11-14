@@ -12,8 +12,6 @@ Most pretrained vision models expect three input channels: red, green and blue. 
 
 timm does this for you when you pass `in_chans=13` to `timm.create_model`. The pretrained first layer only has filters for red, green and blue, so timm copies these three filters over and over until there is one for every band, then scales them down so the output stays roughly the same size. Which filter a band gets depends only on its position in the input. With the usual Sentinel-2 band order, the blue band gets the green filter, the green band gets the blue filter, and both shortwave infrared bands get filters that were learned for visible light. ViTs are handled the same way, because their patch embedding is also a convolution.
 
-The rest of the network was trained on the outputs of the original RGB filters, so after this change it receives inputs unlike anything it saw during pretraining. There are other ways to add the extra bands. You can map all the bands to three channels with a small learned layer placed before the original first layer. You can send the RGB bands through the original filters and the other bands through a separate new layer. Or you can train only the first layer for a while before training the whole network. In this post we compare timm's approach with these alternatives on a ResNet and a ViT, and measure how much the choice matters when fine-tuning.
-
 ## How timm does it
 
 The work happens in a short function called [`adapt_input_conv`](https://github.com/huggingface/pytorch-image-models/blob/12c4939be518a6d02d5d3b47b0b2bed49ad32312/timm/models/_manipulate.py#L293). When you ask for a number of input channels other than three, timm passes the pretrained first-layer weights through this function before loading them into the model. Those weights have shape `(out_channels, 3, k, k)`: every output channel has one `k × k` filter for red, one for green and one for blue. For any number of bands above one, this is the part that does the work ([source](https://github.com/huggingface/pytorch-image-models/blob/12c4939be518a6d02d5d3b47b0b2bed49ad32312/timm/models/_manipulate.py#L337-L341)):
@@ -26,11 +24,7 @@ conv_weight = conv_weight.repeat(1, repeat, 1, 1)[:, :in_chans, :, :]
 conv_weight *= base_chans / float(in_chans)
 ```
 
-`base_chans` is 3 for an RGB checkpoint. With thirteen Sentinel-2 bands, the three lines do the following:
-
-1. `repeat` is the number of RGB copies needed to cover all the bands. For thirteen bands that is five.
-2. `.repeat(...)` stacks those copies along the input dimension, giving red, green, blue, red, green, blue, and so on, and `[:, :in_chans]` cuts the stack back to thirteen. Band *i* gets the filter of channel *i* mod 3.
-3. The last line multiplies every filter by 3/13. The first layer now adds up thirteen filter responses instead of three, and the scaling keeps its output at roughly the original size, as long as the new bands look like RGB.
+`base_chans` is 3 for an RGB checkpoint. For thirteen bands, timm makes five copies of the red, green and blue parts, keeps the first thirteen, and multiplies them by 3/13. The figure below goes through it one step at a time.
 
 Because thirteen is not a multiple of three, the red filter ends up used five times and green and blue four times each.
 
@@ -95,6 +89,8 @@ Because thirteen is not a multiple of three, the red filter ends up used five ti
 })();
 </script>
 ```
+
+The rest of the network was trained on the outputs of the original RGB filters, so after this change it receives inputs unlike anything it saw during pretraining. There are other ways to add the extra bands. You can map all the bands to three channels with a small learned layer placed before the original first layer. You can send the RGB bands through the original filters and the other bands through a separate new layer. Or you can train only the first layer for a while before training the whole network. In this post we compare timm's approach with these alternatives on a ResNet and a ViT, and measure how much the choice matters when fine-tuning.
 
 The comment on top is the honest part. The authors expect the tiling to beat a random initialisation, but they also say that "there could be other combinations of the original input layer weights that'd work better for specific cases." Multispectral imagery is one of those cases, and finding out whether a better combination exists is what the rest of this post is about.
 
