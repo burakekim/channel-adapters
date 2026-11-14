@@ -114,8 +114,8 @@ def frame(cv, d, n_copies=1, cut_alpha=1.0, show_cut=False, scale=1.0, conv=Fals
     (0 hides them); scale: factor applied to all parts; conv/total: later stages."""
     cv.new()
     v = float(np.abs(d["parts"]).max())   # one colour scale for every part, before and after scaling
-    cv.img(0.012, BAND_Y + TH / 2 - 0.13, 0.115, d["rgb"])
-    cv.text(0.0695, BAND_Y + TH / 2 - 0.165, "Sentinel-2 L1C", 11, color=cv.muted)
+    cv.img(0.012, 0.67, 0.115, d["rgb"])
+    cv.text(0.0695, 0.625, "Sentinel-2 L1C\n(13 channels)", 11, color=cv.muted)
     cv.text(MID, BAND_Y + TH + 0.105, "spectral channels", 12, color=cv.muted)
     for i in range(N):
         cv.img(cx(i), BAND_Y, CW, d["bands"][i], cmap="gray", vmin=0, vmax=1)
