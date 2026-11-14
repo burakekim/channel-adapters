@@ -10,7 +10,7 @@ Everything is computed from real data and weights:
 * filter: output channel 20 of conv1 in timm's resnet50.a1_in1k
 * tiling: timm.models._manipulate.adapt_input_conv itself
 
-Writes posts/channel-adapters/tiling.gif and tiling_dark.gif.
+Writes posts/channel-adapters/tiling-v3.webp and tiling-v3_dark.webp (versioned names so browsers never show a cached older animation).
 """
 
 from __future__ import annotations
@@ -172,8 +172,10 @@ def frames(dark, d):
 
 
 def save(fr, path):
-    imgs = [im.quantize(colors=128, method=Image.Quantize.MEDIANCUT) for im, _ in fr]
-    imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=[t for _, t in fr], loop=0, optimize=True)
+    # animated WebP, lossless: full colour, so the filter weights are shown exactly
+    imgs = [im for im, _ in fr]
+    imgs[0].save(path, format="WEBP", save_all=True, append_images=imgs[1:], duration=[t for _, t in fr],
+                  loop=0, lossless=True, method=6)
     print("wrote", path.name, f"{path.stat().st_size / 1e6:.1f} MB,", len(fr), "frames,", sum(t for _, t in fr) / 1000, "s")
 
 
@@ -181,7 +183,7 @@ def main():
     d = compute()
     for dark in (False, True):
         fr = frames(dark, d)
-        save(fr, OUT / ("tiling_dark.gif" if dark else "tiling.gif"))
+        save(fr, OUT / ("tiling-v3_dark.webp" if dark else "tiling-v3.webp"))
         if not dark:
             for k in (0, 1, 2, 11, 13):
                 fr[k][0].save(f"/tmp/claude-29309/anim/g{k}.png")
