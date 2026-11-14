@@ -91,7 +91,7 @@ SLURM = """#!/bin/bash
 #SBATCH --output={logdir}/%A_%a.out
 cd {root}
 export CHADAPT_DATA={data}
-{python} experiments/run.py --exp {exp} --index $SLURM_ARRAY_TASK_ID
+{python} experiments/run.py --exp {exp} --index $SLURM_ARRAY_TASK_ID {force}
 """
 
 
@@ -101,12 +101,14 @@ def main() -> None:
     p.add_argument("--list", action="store_true")
     p.add_argument("--index", type=int)
     p.add_argument("--all", action="store_true")
+    p.add_argument("--force", action="store_true", help="rerun even if the result file exists (replaces it)")
     p.add_argument("--slurm", action="store_true")
     p.add_argument("--partition", default="vision-beery-l40s")
     p.add_argument("--account", default="vision-beery")
     p.add_argument("--qos", default="vision-beery-main")
     p.add_argument("--max-parallel", type=int, default=16)
     p.add_argument("--pick-lr", action="store_true")
+    p.add_argument("--only-todo", action="store_true", help="with --slurm: submit only runs without results")
     a = p.parse_args()
 
     if a.pick_lr:
@@ -119,23 +121,28 @@ def main() -> None:
         print(len(runs), "runs,", sum(done(r) for r in runs), "done")
     elif a.index is not None:
         cfg = runs[a.index]
-        if done(cfg):
+        if done(cfg) and not a.force:
             print("skip", cfg.run_id())
             return
         rec = run(cfg, RESULTS)
         print(cfg.run_id(), {k: rec.get(k) for k in ("test_acc", "val_acc", "train_time_s")})
     elif a.all:
         for cfg in runs:
-            if not done(cfg):
+            if a.force or not done(cfg):
                 rec = run(cfg, RESULTS)
                 print(cfg.run_id(), {k: rec.get(k) for k in ("test_acc", "val_acc", "train_time_s")}, flush=True)
     elif a.slurm:
         logdir = ROOT / "slurm_logs"
         logdir.mkdir(exist_ok=True)
-        script = SLURM.format(exp=a.exp, partition=a.partition, account=a.account, qos=a.qos, last=len(runs) - 1, max_parallel=a.max_parallel,
+        script = SLURM.format(force='--force' if a.force else '', exp=a.exp, partition=a.partition, account=a.account, qos=a.qos, last=len(runs) - 1, max_parallel=a.max_parallel,
                               logdir=logdir, root=ROOT, python=sys.executable,
                               data=os.environ.get("CHADAPT_DATA", Path.home() / ".cache" / "channel-adapters"))
         path = logdir / f"{a.exp}.sbatch"
+        if a.only_todo:
+            todo = [str(i) for i, r in enumerate(runs) if not done(r)]
+            if not todo:
+                print("nothing to do"); return
+            script = script.replace(f"#SBATCH --array=0-{len(runs) - 1}%", "#SBATCH --array=" + ",".join(todo) + "%")
         path.write_text(script)
         print(subprocess.check_output(["sbatch", str(path)], text=True))
 

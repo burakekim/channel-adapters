@@ -19,7 +19,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .adapters import adapt_model, first_layer_parameters
+from .adapters import FIRST_LAYER_LR_MULT, adapt_model, first_layer_parameters
 from .data import Dataset, Split, band_orders, band_stats, load_dataset, subsample
 from .models import build_model, head_parameters
 
@@ -44,7 +44,7 @@ class RunConfig:
     weight_decay: float = 0.05
     lr_warmup_epochs: int = 1
     probe_budgets: tuple[float, ...] = (1.0, 0.1, 0.01)
-    probe_seeds: tuple[int, ...] = (0, 1, 2)
+    probe_seeds: tuple[int, ...] = (0, 1, 2, 3, 4)
     exp: str = "dev"
     tag: str = ""
 
@@ -139,7 +139,14 @@ def finetune(cfg: RunConfig, model, splits, device) -> dict:
     total_steps = epochs * steps_per_epoch
     warm_steps = cfg.lr_warmup_epochs * steps_per_epoch
 
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    mult = FIRST_LAYER_LR_MULT.get(cfg.adapter, 1.0)
+    if mult != 1.0:
+        stem = {id(q) for q in first_layer_parameters(model)}
+        groups = [{"params": [q for q in model.parameters() if id(q) in stem], "lr": cfg.lr * mult},
+                  {"params": [q for q in model.parameters() if id(q) not in stem], "lr": cfg.lr}]
+    else:
+        groups = [{"params": list(model.parameters()), "lr": cfg.lr}]
+    opt = torch.optim.AdamW(groups, lr=cfg.lr, weight_decay=cfg.weight_decay)
     sched = torch.optim.lr_scheduler.LambdaLR(
         opt, lambda s: (s + 1) / warm_steps if s < warm_steps
         else 0.5 * (1 + math.cos(math.pi * (s - warm_steps) / max(1, total_steps - warm_steps))))
@@ -239,7 +246,7 @@ def run(cfg: RunConfig, out_dir: Path | str = "results") -> dict:
     if cfg.mode == "finetune":
         splits["train"] = subsample(splits["train"], cfg.budget, cfg.seed)
     model = build_model(cfg.model, num_classes=len(ds.classes), img_size=cfg.img_size)
-    adapt_model(model, cfg.adapter, n_bands=len(order), rgb=rgb)
+    adapt_model(model, cfg.adapter, n_bands=len(order), rgb=rgb, bands=[ds.bands[i] for i in order])
     model.to(device)
 
     record = {"config": asdict(cfg), "run_id": cfg.run_id(), "git_sha": git_sha(),

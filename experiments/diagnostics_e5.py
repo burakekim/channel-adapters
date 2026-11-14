@@ -46,7 +46,7 @@ def main() -> None:
             for adapter in ADAPTERS:
                 torch.manual_seed(0)
                 m = build_model(model_name, num_classes=len(ds.classes), img_size=IMG)
-                adapt_model(m, adapter, n_bands=len(order), rgb=rgb)
+                adapt_model(m, adapter, n_bands=len(order), rgb=rgb, bands=[ds.bands[i] for i in order])
                 m.to(device).eval()
                 act = first_layer_outputs(first_layer_module(m), x)
                 rows[adapter] = compare_first_layers(ref, act)

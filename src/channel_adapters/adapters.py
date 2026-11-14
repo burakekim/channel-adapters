@@ -19,6 +19,11 @@ split-stem     R, G, B through the original first layer, the other N-3 bands
                (so it also starts as rgb-only).
 warmup         timm-repeat initialization; the training loop first trains only
                the first layer and the head, then everything (see train.py).
+wavelength-init  like timm-repeat, but each band gets the R, G or B kernel whose
+               centre wavelength is nearest its own, instead of kernel i mod 3;
+               scaled by 3/N as in timm. Needs the band names.
+stem-lr10      timm-repeat initialization; the first layer is trained with a
+               learning rate 10x higher than the rest of the network (train.py).
 """
 
 from __future__ import annotations
@@ -46,6 +51,20 @@ def repeat_rescale(weight: torch.Tensor, in_chans: int) -> torch.Tensor:
 def kernel_inherited_by_band(band_index: int) -> str:
     """Which pretrained kernel a band inherits under timm's tiling."""
     return "RGB"[band_index % 3]
+
+
+# Sentinel-2A MSI central wavelengths in nm (ESA SentiWiki, S2 mission, Table 3).
+S2_WAVELENGTH_NM = {
+    "B01": 442.7, "B02": 492.7, "B03": 559.9, "B04": 664.6, "B05": 704.1, "B06": 740.5, "B07": 782.8,
+    "B08": 832.8, "B8A": 864.7, "B09": 945.1, "B10": 1373.5, "B11": 1613.7, "B12": 2202.4,
+}
+RGB_REFERENCE = {"R": "B04", "G": "B03", "B": "B02"}
+
+
+def kernel_by_wavelength(band: str) -> str:
+    """The pretrained kernel (R, G or B) whose band centre is nearest this band's centre."""
+    w = S2_WAVELENGTH_NM[band]
+    return min("RGB", key=lambda k: abs(S2_WAVELENGTH_NM[RGB_REFERENCE[k]] - w))
 
 
 # ----------------------------------------------------------------------------
@@ -127,36 +146,45 @@ class SplitStem(nn.Module):
 # ----------------------------------------------------------------------------
 # adapters
 # ----------------------------------------------------------------------------
-def _timm_repeat(model, n_bands, rgb):
+def _timm_repeat(model, n_bands, rgb, bands=None):
     old = first_layer_module(model)
     _replace_first_layer(model, repeat_rescale(old.weight.detach(), n_bands))
 
 
-def _random_init(model, n_bands, rgb):
+def _random_init(model, n_bands, rgb, bands=None):
     old = first_layer_module(model)
     new = _clone_conv(old, n_bands)  # nn.Conv2d default (kaiming-uniform) init
     set_submodule(model, first_layer_name(model), new)
 
 
-def _mean_rgb_init(model, n_bands, rgb):
+def _mean_rgb_init(model, n_bands, rgb, bands=None):
     old = first_layer_module(model)
     w = old.weight.detach().mean(dim=1, keepdim=True).repeat(1, n_bands, 1, 1) * (3 / n_bands)
     _replace_first_layer(model, w)
 
 
-def _rgb_only(model, n_bands, rgb):
+def _rgb_only(model, n_bands, rgb, bands=None):
     old = first_layer_module(model)
     set_submodule(model, first_layer_name(model), BandSelect(old, rgb))
 
 
-def _pseudo_rgb(model, n_bands, rgb):
+def _pseudo_rgb(model, n_bands, rgb, bands=None):
     old = first_layer_module(model)
     set_submodule(model, first_layer_name(model), PseudoRGB(old, n_bands, rgb))
 
 
-def _split_stem(model, n_bands, rgb):
+def _split_stem(model, n_bands, rgb, bands=None):
     old = first_layer_module(model)
     set_submodule(model, first_layer_name(model), SplitStem(old, n_bands, rgb))
+
+
+def _wavelength_init(model, n_bands, rgb, bands=None):
+    if bands is None or len(bands) != n_bands:
+        raise ValueError("wavelength-init needs the name of every band")
+    old = first_layer_module(model)
+    w = old.weight.detach()
+    w = torch.stack([w[:, "RGB".index(kernel_by_wavelength(b))] for b in bands], dim=1) * (3 / n_bands)
+    _replace_first_layer(model, w)
 
 
 ADAPTERS = {
@@ -167,16 +195,21 @@ ADAPTERS = {
     "pseudo-rgb": _pseudo_rgb,
     "split-stem": _split_stem,
     "warmup": _timm_repeat,  # same initialization; the schedule differs
+    "wavelength-init": _wavelength_init,
+    "stem-lr10": _timm_repeat,  # same initialization; the first layer's learning rate differs
 }
 
+FIRST_LAYER_LR_MULT = {"stem-lr10": 10.0}
 
-def adapt_model(model: nn.Module, adapter: str, n_bands: int, rgb: Sequence[int]) -> nn.Module:
+
+def adapt_model(model: nn.Module, adapter: str, n_bands: int, rgb: Sequence[int],
+                bands: Sequence[str] | None = None) -> nn.Module:
     """Modify ``model`` in place so it accepts ``n_bands`` input channels."""
     if adapter not in ADAPTERS:
         raise KeyError(f"unknown adapter {adapter!r}; choose from {sorted(ADAPTERS)}")
     if len(rgb) != 3:
         raise ValueError("rgb must give the positions of the R, G, B bands")
-    ADAPTERS[adapter](model, n_bands, list(rgb))
+    ADAPTERS[adapter](model, n_bands, list(rgb), None if bands is None else list(bands))
     return model
 
 

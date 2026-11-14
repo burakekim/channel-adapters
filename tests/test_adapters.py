@@ -46,7 +46,7 @@ def test_adapters_forward(name, adapter):
     model = build_model(name, num_classes=10, img_size=64, pretrained=False)
     n = 12
     rgb = [SBD_BANDS.index(b) for b in RGB_NAMES]
-    adapt_model(model, adapter, n_bands=n, rgb=rgb)
+    adapt_model(model, adapter, n_bands=n, rgb=rgb, bands=list(SBD_BANDS))
     x = torch.randn(2, n, 64, 64)
     out = model(x)
     assert out.shape == (2, 10)
@@ -101,3 +101,27 @@ def test_cka_bounds():
     assert math.isclose(linear_cka(x, x), 1.0, abs_tol=1e-5)
     assert math.isclose(linear_cka(x, 3 * x @ torch.eye(16)), 1.0, abs_tol=1e-5)
     assert 0.0 <= linear_cka(x, torch.randn(200, 16)) < 0.5
+
+
+def test_wavelength_assignment_and_order_invariance():
+    from channel_adapters.adapters import kernel_by_wavelength
+    assert [kernel_by_wavelength(b) for b in ("B01", "B02", "B03", "B04")] == ["B", "B", "G", "R"]
+    assert all(kernel_by_wavelength(b) == "R" for b in ("B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"))
+    torch.manual_seed(0)
+    base = build_model("resnet50", num_classes=10, img_size=64, pretrained=False)
+    w3 = first_layer_module(base).weight.detach().clone()
+    for order in (list(range(12)), list(range(12))[::-1]):
+        bands = [SBD_BANDS[i] for i in order]
+        m = build_model("resnet50", num_classes=10, img_size=64, pretrained=False)
+        first_layer_module(m).weight.data.copy_(w3)
+        adapt_model(m, "wavelength-init", n_bands=12, rgb=[bands.index(b) for b in RGB_NAMES], bands=bands)
+        w = first_layer_module(m).weight
+        for j, b in enumerate(bands):  # each band's kernel depends on the band, not its position
+            assert torch.allclose(w[:, j], w3[:, "RGB".index(kernel_by_wavelength(b))] * 3 / 12, atol=1e-6)
+
+
+def test_stem_lr_param_groups():
+    from channel_adapters.train import RunConfig
+    from channel_adapters.adapters import FIRST_LAYER_LR_MULT
+    assert FIRST_LAYER_LR_MULT["stem-lr10"] == 10.0
+    assert RunConfig(adapter="stem-lr10").adapter in ADAPTERS

@@ -1,7 +1,7 @@
 # One block per experiment. Every key with a list is expanded into a grid;
 # `python experiments/run.py --exp E2 --list` shows the resulting runs.
-# Learning rates for E2/E4 come from E1 (best validation accuracy per
-# model x adapter), filled in by `python experiments/run.py --pick-lr`.
+# Learning rates for E0/E2/E4 come from E1 + E1b (best validation accuracy per
+# model x adapter, seed 0, full budget), written by `run.py --pick-lr`.
 
 common:
   img_size: 128
@@ -13,34 +13,45 @@ E0:  # band-order permutation: timm-repeat under five band orders
   adapter: [timm-repeat]
   band_order: [native, rgb-first, reversed, random-0, random-1]
   budget: [1.0]
-  seed: [0, 1, 2]
+  seed: [0, 1, 2, 3, 4]
   lr: from_E1
   mode: finetune
 
 E1:  # learning-rate sweep, full budget, seed 0
   dataset: sbd
   model: [resnet50.a1_in1k, vit_small_patch16_224.augreg_in21k]
-  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup, wavelength-init, stem-lr10]
   band_order: [native]
   budget: [1.0]
   seed: [0]
   lr: [1.0e-4, 3.0e-4, 1.0e-3, 3.0e-3]
   mode: finetune
 
-E2:  # main matrix: full fine-tune across budgets and seeds
+E1b:  # ResNet only: the E1 optimum sat at the top of the grid, so two higher rates
+  dataset: sbd
+  model: [resnet50.a1_in1k]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup, wavelength-init, stem-lr10]
+  band_order: [native]
+  budget: [1.0]
+  seed: [0]
+  lr: [1.0e-2, 3.0e-2]
+  mode: finetune
+
+E2:  # main matrix: full fine-tune across label budgets and seeds
   dataset: sbd
   model: [resnet50.a1_in1k, vit_small_patch16_224.augreg_in21k]
-  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup, wavelength-init, stem-lr10]
   band_order: [native]
   budget: [1.0, 0.1, 0.01]
-  seed: [0, 1, 2]
+  seed: [0, 1, 2, 3, 4]
   lr: from_E1
   mode: finetune
 
-E3:  # linear probe on frozen features (budgets and seeds handled inside the run)
+E3:  # linear probe on frozen features; budgets and subsample seeds are handled inside the run.
+     # warmup and stem-lr10 are training schedules, so frozen they equal timm-repeat.
   dataset: sbd
   model: [resnet50.a1_in1k, vit_small_patch16_224.augreg_in21k]
-  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, wavelength-init]
   band_order: [native]
   budget: [1.0]
   seed: [0]
@@ -50,29 +61,19 @@ E3:  # linear probe on frozen features (budgets and seeds handled inside the run
 E4:  # EuroSAT, full budget, learning rates from E1
   dataset: eurosat
   model: [resnet50.a1_in1k, vit_small_patch16_224.augreg_in21k]
-  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup, wavelength-init, stem-lr10]
   band_order: [native]
   budget: [1.0]
-  seed: [0, 1, 2]
+  seed: [0, 1, 2, 3, 4]
   lr: from_E1
   mode: finetune
 
 E4p:  # EuroSAT linear probe
   dataset: eurosat
   model: [resnet50.a1_in1k, vit_small_patch16_224.augreg_in21k]
-  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem]
+  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, wavelength-init]
   band_order: [native]
   budget: [1.0]
   seed: [0]
   lr: [0.0]
   mode: probe
-
-E1b:  # extension of E1: the ResNet optimum sat at the top of the grid, so add two higher rates
-  dataset: sbd
-  model: [resnet50.a1_in1k]
-  adapter: [timm-repeat, random-init, mean-rgb-init, rgb-only, pseudo-rgb, split-stem, warmup]
-  band_order: [native]
-  budget: [1.0]
-  seed: [0]
-  lr: [1.0e-2, 3.0e-2]
-  mode: finetune
