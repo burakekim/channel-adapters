@@ -10,12 +10,12 @@ Working draft of a blog post on adapting RGB-pretrained models to multispectral 
 |---|---|
 | Title and description | drafted |
 | Introduction | drafted |
-| How timm does it | drafted, with a step-through figure of the repeat, cut and scale |
+| How timm does it | drafted, with an animation of the repeat, cut and scale |
 | Everything after that | not started |
 
 The draft lives in `posts/channel-adapters/index.qmd`.
 
-The step-through figure is generated from real weights and images by `experiments/make_tiling_figure.py`.
+The animation is generated from real weights and images by `experiments/make_tiling_animation.py`.
 
 ## Preview
 
