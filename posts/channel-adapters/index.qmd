@@ -8,7 +8,7 @@ draft: true
 
 Most pretrained vision models expect three input channels: red, green and blue. Satellite images usually have more. Sentinel-2, for example, records thirteen spectral bands, including near-infrared and shortwave infrared bands that an ImageNet model has never seen. To use an RGB-pretrained model on this data, you have to change its first layer so that it accepts thirteen channels instead of three.
 
-timm does this for you when you pass `in_chans=13` to `timm.create_model`. The pretrained first layer only has filters for red, green and blue, so timm copies these three filters over and over until there is one for every band, then scales them down so the output stays roughly the same size. Which filter a band gets depends only on its position in the input. With the usual Sentinel-2 band order, the blue band gets the green filter, the green band gets the blue filter, and both shortwave infrared bands get filters that were learned for visible light. ViTs are handled the same way, because their patch embedding is also a convolution.
+timm does this for you when you pass `in_chans=13` to `timm.create_model`. The pretrained first layer only has filters for red, green and blue, so timm makes enough copies of these three filters to cover every band, drops the copies it does not need, then scales the rest down so the output stays roughly the same size. Which filter a band gets depends only on its position in the input. With the usual Sentinel-2 band order, the blue band gets the green filter, the green band gets the blue filter, and both shortwave infrared bands get filters that were learned for visible light. ViTs are handled the same way, because their patch embedding is also a convolution.
 
 ## How timm does it
 

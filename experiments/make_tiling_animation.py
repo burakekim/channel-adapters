@@ -159,8 +159,7 @@ def frames(dark, d):
     cv = Canvas(dark)
     f = []
     f.append((frame(cv, d, 1), 2200))                                        # three pretrained parts
-    for n in range(2, 6):                                                    # copies appear one by one
-        f.append((frame(cv, d, n), 700 if n < 5 else 1800))
+    f.append((frame(cv, d, 5), 2600))                                        # .repeat(1, 5, 1, 1): all 15 parts at once
     f.append((frame(cv, d, 5, show_cut=True, cut_alpha=0.3), 2200))           # keep the first 13
     f.append((frame(cv, d, 5, cut_alpha=0), 700))
     steps = 8
@@ -184,7 +183,7 @@ def main():
         fr = frames(dark, d)
         save(fr, OUT / ("tiling_dark.gif" if dark else "tiling.gif"))
         if not dark:
-            for k in (0, 4, 5, 14, 16):
+            for k in (0, 1, 2, 11, 13):
                 fr[k][0].save(f"/tmp/claude-29309/anim/g{k}.png")
 
 
